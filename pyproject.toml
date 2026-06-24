@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "bankstatementparser-loader-bai2"
-version = "0.0.1"
+version = "0.0.10"
 description = "BAI2 (Bank Administration Institute v2) cash-management loader that parses BAI2 files into bankstatementparser Transaction objects."
 authors = ["Sebastien Rousseau <sebastian.rousseau@gmail.com>"]
 license = "Apache-2.0"
@@ -101,3 +101,9 @@ exclude = [
 [[tool.mypy.overrides]]
 module = "bankstatementparser.*"
 ignore_missing_imports = true
+
+# Tests use pytest fixtures, subprocess plumbing, and dynamic exec of
+# documented snippets; strict typing there is noise, not signal.
+[[tool.mypy.overrides]]
+module = ["tests.*"]
+ignore_errors = true

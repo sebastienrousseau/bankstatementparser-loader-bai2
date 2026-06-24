@@ -24,6 +24,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 def _package_version() -> str:
+    """Return ``bankstatementparser_loader_bai2.__version__``."""
     sys.path.insert(0, str(ROOT))
     import bankstatementparser_loader_bai2  # noqa: E402  (path-dependent import)
 
@@ -31,6 +32,7 @@ def _package_version() -> str:
 
 
 def _pyproject_version() -> str:
+    """Return the version string from ``pyproject.toml``."""
     text = (ROOT / "pyproject.toml").read_text(encoding="utf-8")
     match = re.search(r'^version\s*=\s*"([^"]+)"', text, re.MULTILINE)
     if not match:
@@ -39,6 +41,7 @@ def _pyproject_version() -> str:
 
 
 def _changelog_versions() -> set[str]:
+    """Return the set of ``[X.Y.Z]`` version headings in the changelog."""
     text = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
     return set(re.findall(r"^## \[(\d+\.\d+\.\d+)\]", text, re.MULTILINE))
 

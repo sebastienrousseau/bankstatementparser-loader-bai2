@@ -8,7 +8,7 @@ so versions are deliberate rather than ad-hoc.
 ## Versioning scheme
 
 bankstatementparser-loader-bai2 follows semantic versioning and currently
-sits at `0.0.1`. The loader stays compatible with
+sits at `0.0.10`. The loader stays compatible with
 [`bankstatementparser`](https://github.com/sebastienrousseau/bankstatementparser) `>= 0.0.9`,
 which it depends on for the `Transaction` model. Bump the patch version
 for bug fixes, the minor version for additive, backwards-compatible

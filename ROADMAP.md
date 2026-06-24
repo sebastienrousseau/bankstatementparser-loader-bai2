@@ -6,7 +6,7 @@ companion of the
 library. The versions are **target** windows; releases ship when the
 gates pass, not on a calendar.
 
-## v0.0.1 - Initial release (current)
+## v0.0.10 - Initial release (current)
 
 - `load_bai2`, `load_bai2_file`, and `summarize_bai2` over a documented,
   pragmatic BAI2 subset (`01`/`02`/`03`/`16`/`88`, with `49`/`98`/`99`

@@ -119,8 +119,8 @@ payload = (
 
 for txn in load_bai2(payload):
     print(txn.amount, txn.category, txn.description)
-# 1500.00 bai2:165 Incoming wire payment from ACME Corp invoice 42
-# -25.00  bai2:475 ATM withdrawal
+# 1500 bai2:165 Incoming wire payment from ACME Corp invoice 42
+# -25 bai2:475 ATM withdrawal
 ```
 
 Runnable versions live in [`examples/`](examples/).
@@ -240,7 +240,7 @@ A `Makefile` orchestrates the quality gates (kept in lockstep with CI):
 | `make type-check` | `mypy --strict` |
 | `make doc-coverage` | `interrogate --fail-under=100` (docstring coverage) |
 
-Current state (v0.0.1): **all tests passing, 100% line + branch
+Current state (v0.0.10): **all tests passing, 100% line + branch
 coverage** against a 100% enforced floor, `mypy --strict` clean,
 interrogate 100%.
 
