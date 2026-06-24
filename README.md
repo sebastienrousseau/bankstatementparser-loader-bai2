@@ -240,7 +240,7 @@ A `Makefile` orchestrates the quality gates (kept in lockstep with CI):
 | `make type-check` | `mypy --strict` |
 | `make doc-coverage` | `interrogate --fail-under=100` (docstring coverage) |
 
-Current state (v0.0.1): **all tests passing, 100% line + branch
+Current state (v0.0.10): **all tests passing, 100% line + branch
 coverage** against a 100% enforced floor, `mypy --strict` clean,
 interrogate 100%.
 
