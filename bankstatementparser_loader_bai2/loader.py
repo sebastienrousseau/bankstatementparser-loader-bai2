@@ -67,18 +67,38 @@ amount field is treated as ``0``.
 Sign convention (debit / credit)
 ---------------------------------
 
-BAI2 transaction *type codes* encode the direction of funds. This loader
-applies the following documented convention based on the numeric range
-of the ``16`` record's type code:
+BAI2 transaction *type codes* are grouped into documented numeric ranges
+that encode the direction of funds. This loader applies the following
+convention based on the numeric range of the ``16`` record's type code:
 
 * ``100``-``399`` -> **credit** (amount kept **positive**)
 * ``400``-``699`` -> **debit** (amount made **negative**)
-* anything else -> kept **positive**; the raw type code is preserved.
+* ``700``-``799`` -> **loan** detail. Loan codes describe disbursements,
+  advances, and payments on the loan side of a relationship file. This
+  loader treats them as a **debit**-side movement (amount made
+  **negative**), matching the "money leaving the reported balance"
+  reading used for the ``400``-``699`` range.
+* ``900``-``999`` -> **custom / summary / status**. These are
+  non-detail codes (institution-specific status and summary lines, not
+  individual postings). This loader **does not emit a Transaction** for
+  them; they are skipped so a status line never pollutes the posting
+  list. Any continuations attached to a skipped status code are dropped
+  with it.
+* anything else (including non-numeric codes) -> kept **positive**; the
+  raw type code is preserved.
 
-The raw BAI2 type code is always preserved on the resulting
+The raw BAI2 type code is always preserved on every emitted
 ``Transaction`` in both the ``category`` field (as ``bai2:<code>``) and
-the ``reference`` field, so no information is lost even for codes outside
-the two ranges above.
+the ``reference`` field, so no information is lost.
+
+Type-code descriptions
+----------------------
+
+A small, optional lookup of well-known BAI2 transaction type codes (for
+example ``142`` "ACH credit" or ``475`` "Check paid") is used to enrich
+the ``Transaction.description`` when the ``16`` record itself carries no
+free-text. When the lookup has no entry, or the record already has text,
+the record's own text is used unchanged.
 """
 
 from __future__ import annotations
@@ -100,11 +120,58 @@ __all__ = [
 
 # ─── Sign-convention boundaries ──────────────────────────────────────────────
 
-# Inclusive lower/upper bounds for the credit and debit type-code ranges.
-# Documented in the module docstring; kept here as the single source of
-# truth so the loader and the tests agree.
-_CREDIT_RANGE = range(100, 400)  # 100-399 -> credit (positive)
-_DEBIT_RANGE = range(400, 700)  # 400-699 -> debit (negative)
+# Type-code ranges, documented in the module docstring and kept here as
+# the single source of truth so the loader, the README, and the tests all
+# agree. Each ``range`` is half-open (its stop is exclusive), so e.g.
+# ``range(100, 400)`` spans the inclusive BAI2 codes 100-399.
+_CREDIT_RANGE = range(100, 400)  # 100-399 -> credit  (positive)
+_DEBIT_RANGE = range(400, 700)  # 400-699 -> debit   (negative)
+_LOAN_RANGE = range(700, 800)  # 700-799 -> loan    (debit-side, negative)
+_STATUS_RANGE = range(900, 1000)  # 900-999 -> custom/summary/status (skipped)
+
+
+# Optional, well-known BAI2 transaction type-code descriptions. Used only
+# to enrich a transaction whose ``16`` record carries no free-text; never
+# overrides text the bank supplied. Intentionally small and fully tested.
+_TYPE_CODE_DESCRIPTIONS: dict[str, str] = {
+    "142": "ACH credit",
+    "165": "Wire transfer credit",
+    "301": "Commercial deposit",
+    "475": "Check paid",
+    "501": "Wire transfer debit",
+}
+
+
+def _description_for_type_code(type_code: str) -> str | None:
+    """Return the well-known description for a BAI2 type code, if any.
+
+    Args:
+        type_code: The raw BAI2 ``16`` record type code.
+
+    Returns:
+        The mapped human-readable description, or ``None`` when the code
+        is not in the optional lookup table.
+    """
+    return _TYPE_CODE_DESCRIPTIONS.get(type_code)
+
+
+def _is_status_type_code(type_code: str) -> bool:
+    """Return ``True`` for a ``900``-``999`` custom/summary/status code.
+
+    These non-detail codes do not represent an individual posting, so the
+    loader skips them rather than emitting a misleading ``Transaction``.
+
+    Args:
+        type_code: The raw BAI2 ``16`` record type code.
+
+    Returns:
+        ``True`` when the code parses as an integer in ``900``-``999``,
+        otherwise ``False`` (including for non-numeric codes).
+    """
+    try:
+        return int(type_code) in _STATUS_RANGE
+    except ValueError:
+        return False
 
 
 # ─── Record tokeniser ────────────────────────────────────────────────────────
@@ -181,15 +248,16 @@ def _signed_amount(type_code: str, magnitude: Decimal) -> Decimal:
         magnitude: The non-negative amount in major units.
 
     Returns:
-        The magnitude negated for debit type codes (``400``-``699``),
-        otherwise returned unchanged (credits and unknown codes stay
-        positive).
+        The magnitude negated for debit type codes (``400``-``699``) and
+        loan detail codes (``700``-``799``, treated as debit-side
+        disbursements), otherwise returned unchanged (credits and unknown
+        codes stay positive).
     """
     try:
         code = int(type_code)
     except ValueError:
         return magnitude
-    if code in _DEBIT_RANGE:
+    if code in _DEBIT_RANGE or code in _LOAN_RANGE:
         return -magnitude
     return magnitude
 
@@ -249,6 +317,10 @@ class _PendingTransaction:
         description = " ".join(
             part for part in self.text_parts if part
         ).strip()
+        # When the record carries no free-text, fall back to the optional
+        # well-known type-code description (e.g. 475 -> "Check paid").
+        if not description:
+            description = _description_for_type_code(self.type_code) or ""
         transaction_id = self.bank_ref or self.customer_ref or None
         return Transaction(
             account_id=self.account_number,
@@ -275,7 +347,9 @@ class Bai2Summary:
         file_id: The ``fileId`` field from the ``01`` File Header.
         group_count: Number of ``02`` Group Header records.
         account_count: Number of ``03`` Account Identifier records.
-        transaction_count: Number of ``16`` Transaction Detail records.
+        transaction_count: Number of emitted transactions -- one per
+            ``16`` Transaction Detail record, excluding skipped
+            ``900``-``999`` custom/summary/status codes.
         currency: The first currency seen (account currency preferred,
             otherwise the group currency), or ``None`` if none was given.
     """
@@ -346,9 +420,16 @@ def load_bai2(text: str) -> list[Transaction]:
             account_currency = _field(fields, 2) or None
         elif code == "16":
             _flush()
+            type_code = _field(fields, 1)
+            if _is_status_type_code(type_code):
+                # 900-999 custom/summary/status codes are not postings:
+                # emit nothing, and drop any continuations attached to it
+                # by leaving no pending transaction to append to.
+                continuation_target = 0
+                continue
             continuation_target = 16
             pending = _PendingTransaction(
-                type_code=_field(fields, 1),
+                type_code=type_code,
                 amount=_amount_to_decimal(_field(fields, 2)),
                 bank_ref=_field(fields, 4),
                 customer_ref=_field(fields, 5),
@@ -429,7 +510,11 @@ def summarize_bai2(text: str) -> Bai2Summary:
             if account_currency is not None:
                 currency = account_currency
         elif code == "16":
-            transaction_count += 1
+            # Count only emitted postings; 900-999 custom/summary/status
+            # codes are skipped by load_bai2, so they are not counted here
+            # either, keeping the summary and the transaction list in step.
+            if not _is_status_type_code(_field(fields, 1)):
+                transaction_count += 1
 
     return Bai2Summary(
         file_id=file_id,

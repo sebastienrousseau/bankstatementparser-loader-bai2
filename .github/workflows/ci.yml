@@ -101,3 +101,38 @@ jobs:
         run: |
           python examples/01_load_transactions.py
           python examples/02_summarize_file.py
+
+  smoke:
+    name: Install smoke test
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+
+      - name: Build the wheel
+        run: |
+          python -m pip install --upgrade pip build
+          python -m build --wheel
+
+      - name: Install the wheel into a fresh virtual environment
+        run: |
+          python -m venv "$RUNNER_TEMP/smoke"
+          "$RUNNER_TEMP/smoke/bin/pip" install --upgrade pip
+          "$RUNNER_TEMP/smoke/bin/pip" install dist/*.whl
+
+      - name: Import the installed package and print its version
+        run: |
+          "$RUNNER_TEMP/smoke/bin/python" -c \
+            "import bankstatementparser_loader_bai2 as b; print(b.__version__)"
+
+      - name: Run an example from a neutral working directory
+        run: |
+          cd "$RUNNER_TEMP"
+          "$RUNNER_TEMP/smoke/bin/python" \
+            "$GITHUB_WORKSPACE/examples/01_load_transactions.py"

@@ -191,18 +191,27 @@ units** (cents), with no decimal point. They are converted to
 `decimal.Decimal` by dividing by 100. An empty amount field is treated
 as `0`.
 
-Debit / credit direction is derived from the numeric range of the `16`
-record's type code (this is the loader's chosen, documented convention):
+Debit / credit direction is derived from the documented numeric ranges
+of the `16` record's type code (this is the loader's chosen, documented
+convention):
 
-| Type-code range | Direction | Sign |
+| Type-code range | Meaning | Behaviour |
 | :--- | :--- | :--- |
 | `100`–`399` | Credit | amount kept **positive** |
 | `400`–`699` | Debit | amount made **negative** |
-| anything else | unknown | amount kept **positive** |
+| `700`–`799` | Loan detail | treated as a debit-side disbursement: amount made **negative** |
+| `900`–`999` | Custom / summary / status | **no `Transaction` emitted** — these non-detail status/summary codes are skipped (and any continuation attached to one is dropped with it) |
+| anything else | Unknown (incl. non-numeric) | amount kept **positive** |
 
-The raw BAI2 type code is always preserved on the `Transaction` in both
-`category` (as `bai2:<code>`) and `reference`, so no information is lost
-— even for codes outside the two ranges above.
+The raw BAI2 type code is always preserved on every emitted
+`Transaction` in both `category` (as `bai2:<code>`) and `reference`, so
+no information is lost.
+
+A small, optional lookup of well-known type codes (for example `142`
+"ACH credit", `301` "Commercial deposit", `475` "Check paid", `501`
+"Wire transfer debit") enriches the `description` of a `16` record that
+carries no free-text of its own; a record that already has text keeps
+its own text unchanged.
 
 ---
 
@@ -240,7 +249,7 @@ A `Makefile` orchestrates the quality gates (kept in lockstep with CI):
 | `make type-check` | `mypy --strict` |
 | `make doc-coverage` | `interrogate --fail-under=100` (docstring coverage) |
 
-Current state (v0.0.10): **all tests passing, 100% line + branch
+Current state (v0.0.11): **all tests passing, 100% line + branch
 coverage** against a 100% enforced floor, `mypy --strict` clean,
 interrogate 100%.
 

@@ -21,7 +21,7 @@ from bankstatementparser_loader_bai2.loader import (
     summarize_bai2,
 )
 
-__version__ = "0.0.10"
+__version__ = "0.0.11"
 
 __all__ = [
     "load_bai2",
