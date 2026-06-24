@@ -1,0 +1,13 @@
+name: "bankstatementparser-loader-bai2 CodeQL config"
+
+# Examples and tests print sample BAI2 data for demonstration. Excluding
+# those directories keeps the scan focused on production code in
+# ``bankstatementparser_loader_bai2/``.
+paths-ignore:
+  - examples
+  - tests
+
+# Use the default + security-extended query suite so we get the same
+# coverage GitHub's default setup would have offered.
+queries:
+  - uses: security-and-quality

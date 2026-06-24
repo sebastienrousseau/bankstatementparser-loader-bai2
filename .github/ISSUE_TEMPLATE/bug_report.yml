@@ -1,0 +1,68 @@
+name: Bug Report
+description: Report a reproducible problem in bankstatementparser-loader-bai2
+title: "[Bug]: "
+labels: ["bug", "triage"]
+body:
+  - type: input
+    id: version
+    attributes:
+      label: bankstatementparser-loader-bai2 Version
+      placeholder: "0.0.1"
+    validations:
+      required: true
+  - type: input
+    id: bankstatementparser_version
+    attributes:
+      label: bankstatementparser Version
+      placeholder: "0.0.9"
+    validations:
+      required: true
+  - type: dropdown
+    id: python_version
+    attributes:
+      label: Python Version
+      options:
+        - "3.10"
+        - "3.11"
+        - "3.12"
+        - "3.13"
+    validations:
+      required: true
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating System
+      options:
+        - Linux
+        - macOS
+        - Windows
+    validations:
+      required: true
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: What happened and what did you expect instead?
+    validations:
+      required: true
+  - type: textarea
+    id: sample
+    attributes:
+      label: BAI2 Sample
+      description: |
+        A minimal BAI2 payload that reproduces the problem (redact any
+        real account numbers - placeholder data is fine).
+    validations:
+      required: true
+  - type: textarea
+    id: error_output
+    attributes:
+      label: Error Output
+      description: The exception message or full traceback returned.
+    validations:
+      required: true
+  - type: textarea
+    id: extra
+    attributes:
+      label: Anything Else
+      description: Logs, environment details, etc.

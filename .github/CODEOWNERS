@@ -1,0 +1,17 @@
+# Code ownership for review routing.
+# See https://docs.github.com/articles/about-code-owners
+#
+# bankstatementparser-loader-bai2 currently has a single maintainer. Co-maintainers are
+# welcome - ARCHITECTURE.md is the onboarding map; open a discussion
+# or PR if you'd like to help maintain an area below.
+
+# Default owner for everything.
+*                       @sebastienrousseau
+
+# The loader package is the headline surface.
+/bankstatementparser_loader_bai2/           @sebastienrousseau
+
+# Tests + examples + CI keep the rest honest.
+/tests/                 @sebastienrousseau
+/examples/              @sebastienrousseau
+/.github/workflows/     @sebastienrousseau

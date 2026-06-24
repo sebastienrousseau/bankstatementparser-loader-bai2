@@ -1,0 +1,46 @@
+name: Feature Request
+description: Suggest a new capability for bankstatementparser-loader-bai2
+title: "[Feature]: "
+labels: ["enhancement", "triage"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem Statement
+      description: |
+        What can't you do today with bankstatementparser-loader-bai2?
+        For example, a BAI2 record type or field that is not yet handled.
+    validations:
+      required: true
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed Solution
+      description: |
+        Sketch the change. Which record(s) or field(s) should be parsed,
+        and how should they map onto the Transaction model?
+    validations:
+      required: true
+  - type: textarea
+    id: use_case
+    attributes:
+      label: Real-World Use Case
+      description: How would you actually use this in your pipeline?
+    validations:
+      required: true
+  - type: textarea
+    id: sample
+    attributes:
+      label: Example BAI2 Input
+      description: |
+        A small BAI2 snippet showing the input that should be supported
+        (placeholder data is fine).
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives Considered
+  - type: textarea
+    id: contribution
+    attributes:
+      label: Willingness To Contribute
+      description: Could you take a stab at the implementation or tests?

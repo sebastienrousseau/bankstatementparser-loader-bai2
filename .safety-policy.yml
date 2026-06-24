@@ -1,0 +1,5 @@
+# Safety CLI policy. bankstatementparser-loader-bai2 has a small dependency
+# tree (bankstatementparser + its transitive deps); pin known false
+# positives here with an expiry so they don't go stale.
+security:
+  ignore-vulnerabilities: {}
