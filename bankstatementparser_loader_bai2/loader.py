@@ -37,14 +37,32 @@ This loader implements the following records:
     currency for every transaction under this account.
 
 ``16`` Transaction Detail
-    ``16,typeCode,amount,fundsType,bankRefNum,customerRefNum,text`` --
-    one transaction. ``amount`` is an integer in the account currency's
-    minor units (see "Amounts" below). ``text`` becomes the
+    ``16,typeCode,amount,fundsType,[funds-type subfields,]bankRefNum,customerRefNum,text``
+    -- one transaction. ``amount`` is an integer in the account
+    currency's minor units (see "Amounts" below). ``text`` becomes the
     description.
+
+    The ``text`` field is **free-form and runs to the end of the
+    record, commas included**. Real-world BAI2 puts structured prose
+    there (``ACH Credit Payment,Entry Description: EXP; -, SEC: CCD,
+    ...``), so the loader splits only the fixed leading fields and keeps
+    the remainder verbatim rather than naively splitting the whole
+    record on commas.
+
+    The ``fundsType`` field selects how many subfields sit between it
+    and ``bankRefNum``: ``V`` (value-dated) inserts ``valueDate`` and
+    ``valueTime``; ``S`` (distributed availability) inserts three
+    availability amounts; everything else (``0``/``1``/``2``/``Z`` or
+    empty) inserts none. The loader counts these so ``bankRefNum``,
+    ``customerRefNum``, and ``text`` are located correctly regardless of
+    funds type.
 
 ``88`` Continuation
     Continues the text of the immediately preceding ``03`` or ``16``
-    record; its content is appended to that record's description.
+    record; its content (everything after the leading ``88`` field,
+    commas included) is appended to that record's description. A ``88``
+    that continues an ``03`` account summary, or one that has no
+    preceding detail to attach to, is dropped rather than mis-attached.
 
 ``49`` Account Trailer, ``98`` Group Trailer, ``99`` File Trailer
     Control-total records. This loader **ignores** them -- it does not
@@ -177,31 +195,153 @@ def _is_status_type_code(type_code: str) -> bool:
 # ─── Record tokeniser ────────────────────────────────────────────────────────
 
 
-def _iter_records(text: str) -> Iterator[list[str]]:
-    """Yield each BAI2 record as a list of its comma-delimited fields.
+def _iter_records(text: str) -> Iterator[str]:
+    """Yield each BAI2 record as a single terminator-stripped line.
 
-    Tolerates CRLF / LF line endings, blank lines, and an optional
-    trailing ``/`` record delimiter. The trailing ``/`` (and anything a
-    bank may append after it) is stripped before the fields are split.
+    Tolerates CRLF / LF line endings, blank lines, trailing spaces, and
+    the optional trailing ``/`` record delimiter. Exactly one trailing
+    ``/`` (after stripping surrounding whitespace) is removed: it is the
+    record terminator. A ``/`` is *not* stripped from anywhere else in
+    the line, because the free-text field of a ``16`` / ``88`` record can
+    legitimately contain ``/`` (e.g. ``Client Ref ID: AB/GS/FILE0001``),
+    and that text always sits mid-line, never at the record end.
+
+    Returning the whole record line (rather than pre-split fields) lets
+    each record type decide for itself how many leading fields to split
+    and where its free-text begins, so commas inside a ``16`` / ``88``
+    text field are preserved.
 
     Args:
         text: The raw BAI2 payload.
 
     Yields:
-        One ``list[str]`` of fields per non-empty record, in file order.
+        One record string per non-empty line, in file order.
     """
     for raw_line in text.replace("\r\n", "\n").replace("\r", "\n").split("\n"):
         line = raw_line.strip()
         if not line:
             continue
-        # A record ends with the '/' delimiter; drop it (and any
-        # trailing remainder) so the final field is clean.
-        if "/" in line:
-            line = line[: line.index("/")]
-        line = line.rstrip()
+        # Drop exactly one trailing '/' record terminator (and any
+        # whitespace around it). In-text slashes are never line-final.
+        if line.endswith("/"):
+            line = line[:-1].rstrip()
         if not line:
             continue
-        yield [field.strip() for field in line.split(",")]
+        yield line
+
+
+def _record_code(record: str) -> str:
+    """Return the leading numeric type code of a record line.
+
+    The code is the first comma-delimited field. A handful of banks emit
+    ``88:`` (colon) instead of ``88,``; the colon variant is normalised
+    here so the continuation still routes correctly.
+
+    Args:
+        record: One terminator-stripped record line.
+
+    Returns:
+        The leading type code, trimmed.
+    """
+    head = record.split(",", 1)[0]
+    # Tolerate the rare '88:' colon-delimited continuation form.
+    head = head.split(":", 1)[0]
+    return head.strip()
+
+
+def _split_record(record: str) -> list[str]:
+    """Split a non-text BAI2 record into its trimmed comma-delimited fields.
+
+    Used for control records (``01``/``02``/``03``/``49``/``98``/``99``)
+    whose fields never contain embedded commas. ``16`` and ``88`` records
+    are parsed separately so their free-text field is preserved verbatim.
+
+    Args:
+        record: One terminator-stripped record line.
+
+    Returns:
+        The trimmed fields in order.
+    """
+    return [field.strip() for field in record.split(",")]
+
+
+# Funds-type codes that insert extra subfields between the funds-type
+# field and the bank reference in a ``16`` record. The value is the
+# number of subfields inserted. Codes not listed here (``0``/``1``/``2``/
+# ``Z`` or an empty funds type) insert none.
+_FUNDS_TYPE_SUBFIELDS: dict[str, int] = {
+    "V": 2,  # value-dated: valueDate, valueTime
+    "S": 3,  # distributed availability: immediate, one-day, more-than-one-day
+}
+
+
+def _text_field_index(funds_type: str) -> int:
+    """Return the field index at which a ``16`` record's free-text begins.
+
+    The base layout is ``16,typeCode,amount,fundsType,bankRef,customerRef,
+    text`` (text at index 6). A ``V`` or ``S`` funds type inserts extra
+    subfields after ``fundsType``, pushing ``bankRef``/``customerRef``/
+    ``text`` further right by that many positions.
+
+    Args:
+        funds_type: The raw funds-type field (index 3) of the ``16``
+            record.
+
+    Returns:
+        The zero-based index of the first free-text field.
+    """
+    return 6 + _FUNDS_TYPE_SUBFIELDS.get(funds_type.strip().upper(), 0)
+
+
+def _split_16(record: str) -> tuple[str, str, str, str, str]:
+    """Split a ``16`` Transaction Detail into its parts, text kept verbatim.
+
+    The leading fixed fields are split on commas; the free-text field is
+    everything from its starting index onward, joined back with commas so
+    embedded commas survive. The text's own leading / trailing whitespace
+    is trimmed but its internal commas and slashes are preserved.
+
+    Args:
+        record: One terminator-stripped ``16`` record line.
+
+    Returns:
+        A ``(type_code, amount, bank_ref, customer_ref, text)`` tuple.
+    """
+    parts = record.split(",")
+    type_code = parts[1].strip() if len(parts) > 1 else ""
+    amount = parts[2].strip() if len(parts) > 2 else ""
+    funds_type = parts[3] if len(parts) > 3 else ""
+    text_index = _text_field_index(funds_type)
+    bank_ref = (
+        parts[text_index - 2].strip() if len(parts) > text_index - 2 else ""
+    )
+    customer_ref = (
+        parts[text_index - 1].strip() if len(parts) > text_index - 1 else ""
+    )
+    text = (
+        ",".join(parts[text_index:]).strip() if len(parts) > text_index else ""
+    )
+    return type_code, amount, bank_ref, customer_ref, text
+
+
+def _continuation_text(record: str) -> str:
+    """Return the verbatim text carried by an ``88`` continuation record.
+
+    Everything after the leading ``88`` field is the continuation text,
+    commas included. Some banks emit ``88:`` (colon) instead of ``88,``;
+    both are tolerated. The text is trimmed at its ends only.
+
+    Args:
+        record: One terminator-stripped ``88`` record line.
+
+    Returns:
+        The continuation text, or ``""`` when the record carries none.
+    """
+    for separator in (",", ":"):
+        head, found, tail = record.partition(separator)
+        if found and head.strip() == "88":
+            return tail.strip()
+    return ""
 
 
 # ─── Field helpers ───────────────────────────────────────────────────────────
@@ -385,13 +525,15 @@ def load_bai2(text: str) -> list[Transaction]:
             Header record.
     """
     records = list(_iter_records(text))
-    if not records or _field(records[0], 0) != "01":
+    if not records or _split_record(records[0])[0] != "01":
         raise ValueError("BAI2 payload must start with an '01' File Header")
 
     transactions: list[Transaction] = []
+    # The single in-progress ``16`` transaction, or ``None``. A live
+    # ``pending`` is the *only* thing an ``88`` continuation attaches to:
+    # every non-``16`` record (and a skipped status ``16``) flushes it to
+    # ``None`` first, so a continuation after one of those is dropped.
     pending: _PendingTransaction | None = None
-    # Continuation target: 0 = none, 3 = last account note, 16 = pending tx.
-    continuation_target = 0
     group_currency: str | None = None
     group_as_of: date | None = None
     account_number: str | None = None
@@ -404,52 +546,50 @@ def load_bai2(text: str) -> list[Transaction]:
             transactions.append(pending.to_transaction())
             pending = None
 
-    for fields in records:
-        code = _field(fields, 0)
+    for record in records:
+        code = _record_code(record)
         if code == "02":
             _flush()
-            continuation_target = 0
+            fields = _split_record(record)
             group_as_of = _parse_bai2_date(_field(fields, 4))
             group_currency = _field(fields, 6) or None
             account_number = None
             account_currency = None
         elif code == "03":
             _flush()
-            continuation_target = 3
+            fields = _split_record(record)
             account_number = _field(fields, 1) or None
             account_currency = _field(fields, 2) or None
         elif code == "16":
             _flush()
-            type_code = _field(fields, 1)
+            type_code, amount, bank_ref, customer_ref, txt = _split_16(record)
             if _is_status_type_code(type_code):
                 # 900-999 custom/summary/status codes are not postings:
-                # emit nothing, and drop any continuations attached to it
-                # by leaving no pending transaction to append to.
-                continuation_target = 0
+                # emit nothing. The _flush above already cleared pending,
+                # so any continuation that follows is dropped with it.
                 continue
-            continuation_target = 16
             pending = _PendingTransaction(
                 type_code=type_code,
-                amount=_amount_to_decimal(_field(fields, 2)),
-                bank_ref=_field(fields, 4),
-                customer_ref=_field(fields, 5),
-                text_parts=[_field(fields, 6)],
+                amount=_amount_to_decimal(amount),
+                bank_ref=bank_ref,
+                customer_ref=customer_ref,
+                text_parts=[txt],
                 account_number=account_number,
                 currency=account_currency or group_currency,
                 booking_date=group_as_of,
                 index=len(transactions),
             )
         elif code == "88":
-            # Continuation text is every field after the leading '88'.
-            note = ",".join(fields[1:]).strip()
-            if continuation_target == 16 and pending is not None:
-                pending.text_parts.append(note)
-            # A continuation of an '03' account note has no transaction
-            # to attach to yet; it is informational and dropped here.
+            # Continuation text is everything after the leading '88',
+            # commas and slashes included, kept verbatim.
+            if pending is not None:
+                pending.text_parts.append(_continuation_text(record))
+            # A continuation of an '03' account note (or one with no
+            # preceding detail) has no pending transaction to attach to;
+            # it is informational and dropped here.
         elif code in {"49", "98", "99"}:
             # Trailer / control-total records are intentionally ignored.
             _flush()
-            continuation_target = 0
         # 01 and any unknown code: nothing to accumulate.
 
     _flush()
@@ -487,33 +627,33 @@ def summarize_bai2(text: str) -> Bai2Summary:
         ValueError: If the file does not start with an ``01`` record.
     """
     records = list(_iter_records(text))
-    if not records or _field(records[0], 0) != "01":
+    if not records or _record_code(records[0]) != "01":
         raise ValueError("BAI2 payload must start with an '01' File Header")
 
-    file_id = _field(records[0], 5) or None
+    file_id = _field(_split_record(records[0]), 5) or None
     group_count = 0
     account_count = 0
     transaction_count = 0
     currency: str | None = None
     group_currency: str | None = None
 
-    for fields in records:
-        code = _field(fields, 0)
+    for record in records:
+        code = _record_code(record)
         if code == "02":
             group_count += 1
-            group_currency = _field(fields, 6) or None
+            group_currency = _field(_split_record(record), 6) or None
             if currency is None and group_currency is not None:
                 currency = group_currency
         elif code == "03":
             account_count += 1
-            account_currency = _field(fields, 2) or None
+            account_currency = _field(_split_record(record), 2) or None
             if account_currency is not None:
                 currency = account_currency
         elif code == "16":
             # Count only emitted postings; 900-999 custom/summary/status
             # codes are skipped by load_bai2, so they are not counted here
             # either, keeping the summary and the transaction list in step.
-            if not _is_status_type_code(_field(fields, 1)):
+            if not _is_status_type_code(_split_16(record)[0]):
                 transaction_count += 1
 
     return Bai2Summary(

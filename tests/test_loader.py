@@ -515,3 +515,120 @@ def test_load_bai2_file_reads_from_disk(tmp_path) -> None:
     txns = load_bai2_file(path)
     assert len(txns) == 3
     assert txns[0].amount == Decimal("1500.00")
+
+
+def test_short_group_record_missing_as_of_and_currency() -> None:
+    """A 02 record missing its as-of date and currency fields is safe.
+
+    Exercises the field-out-of-range path: a truncated 02 leaves
+    booking_date and the fallback currency None rather than raising.
+    """
+    payload = (
+        "01,S,R,260601,1200,F1,/\n"
+        "02,RCVR\n"
+        "03,ACC1,,010,100,1,,/\n"
+        "16,166,100,Z,REF,,Tx/\n"
+    )
+    txn = load_bai2(payload)[0]
+    assert txn.booking_date is None
+    assert txn.currency is None
+
+
+def test_comma_in_transaction_text_is_preserved_verbatim() -> None:
+    """The 16 free-text field keeps its internal commas (issue #113 bug).
+
+    Before the fix the whole 16 record was split on commas, truncating
+    the description after the first text comma. The text after the
+    customer-ref field must be kept verbatim, commas included.
+    """
+    payload = (
+        "01,S,R,260601,1200,F1,/\n"
+        "02,RCVR,ORIG,1,260601,1200,USD,/\n"
+        "03,ACC1,USD,010,100,1,,/\n"
+        "16,447,60000,,SPB1,1111,ACH Credit Payment,Entry Description: "
+        "EXP; -, SEC: CCD, Client Ref ID: 1111\n"
+    )
+    txn = load_bai2(payload)[0]
+    assert txn.transaction_id == "SPB1"
+    assert txn.description == (
+        "ACH Credit Payment,Entry Description: EXP; -, SEC: CCD, "
+        "Client Ref ID: 1111"
+    )
+
+
+def test_slash_inside_text_not_treated_as_terminator() -> None:
+    """A '/' in the text field is kept, not read as the record terminator.
+
+    The record carries no trailing '/', and the in-text slash sits
+    mid-line, so the whole text (slashes included) survives.
+    """
+    payload = (
+        "01,S,R,260601,1200,F1,/\n"
+        "02,RCVR,ORIG,1,260601,1200,USD,/\n"
+        "03,ACC1,USD,010,100,1,,/\n"
+        "16,165,100,,REF,,Client Ref ID: AB/GS/FILE0001/BA0001\n"
+    )
+    txn = load_bai2(payload)[0]
+    assert txn.description == "Client Ref ID: AB/GS/FILE0001/BA0001"
+
+
+def test_value_dated_funds_type_shifts_text_field() -> None:
+    """A 'V' funds type inserts valueDate/valueTime before the refs.
+
+    With ``V`` the text field sits two positions further right, so the
+    bank ref, customer ref, and text must be located accordingly.
+    """
+    payload = (
+        "01,S,R,260601,1200,F1,/\n"
+        "02,RCVR,ORIG,1,260601,1200,USD,/\n"
+        "03,ACC1,USD,010,100,1,,/\n"
+        "16,409,2500,V,060316,,BANKV,CUSTV,RETURNED CHEQUE/\n"
+    )
+    txn = load_bai2(payload)[0]
+    assert txn.amount == Decimal("-25.00")
+    assert txn.transaction_id == "BANKV"
+    assert txn.description == "RETURNED CHEQUE"
+
+
+def test_distributed_availability_funds_type_shifts_text_field() -> None:
+    """An 'S' funds type inserts three availability amounts before refs."""
+    payload = (
+        "01,S,R,260601,1200,F1,/\n"
+        "02,RCVR,ORIG,1,260601,1200,USD,/\n"
+        "03,ACC1,USD,010,100,1,,/\n"
+        "16,165,9000,S,3000,3000,3000,BANKS,CUSTS,Split availability/\n"
+    )
+    txn = load_bai2(payload)[0]
+    assert txn.amount == Decimal("90.00")
+    assert txn.transaction_id == "BANKS"
+    assert txn.description == "Split availability"
+
+
+def test_colon_form_continuation_is_attached() -> None:
+    """A bank that emits '88:' (colon) instead of '88,' still continues."""
+    payload = (
+        "01,S,R,260601,1200,F1,/\n"
+        "02,RCVR,ORIG,1,260601,1200,USD,/\n"
+        "03,ACC1,USD,010,100,1,,/\n"
+        "16,165,100,,REF,,Base text\n"
+        "88:EREF: 12345\n"
+    )
+    txn = load_bai2(payload)[0]
+    assert txn.description == "Base text EREF: 12345"
+
+
+def test_bare_continuation_record_adds_no_text() -> None:
+    """An '88' with no separator or content contributes nothing.
+
+    Covers the no-match path of the continuation-text extractor: a bare
+    ``88`` token yields an empty note, leaving the description unchanged.
+    """
+    payload = (
+        "01,S,R,260601,1200,F1,/\n"
+        "02,RCVR,ORIG,1,260601,1200,USD,/\n"
+        "03,ACC1,USD,010,100,1,,/\n"
+        "16,165,100,,REF,,Only base\n"
+        "88\n"
+    )
+    txn = load_bai2(payload)[0]
+    assert txn.description == "Only base"

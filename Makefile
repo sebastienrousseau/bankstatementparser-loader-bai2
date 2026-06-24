@@ -1,4 +1,4 @@
-.PHONY: help install dev test lint format type-check security clean examples doc-coverage check
+.PHONY: help install dev test lint format type-check security clean examples doc-coverage mutation check
 
 PYTHON ?= python3
 POETRY ?= poetry
@@ -46,5 +46,9 @@ examples: ## Verify example scripts run
 
 doc-coverage: ## Enforce the 100% docstring coverage gate
 	$(POETRY) run interrogate -c pyproject.toml -v bankstatementparser_loader_bai2
+
+mutation: ## Run mutation testing (mutmut) and print the kill score
+	$(POETRY) run mutmut run
+	$(POETRY) run mutmut results
 
 check: lint type-check test doc-coverage examples ## Run all gates

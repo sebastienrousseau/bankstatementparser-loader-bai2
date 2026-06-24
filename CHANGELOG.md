@@ -5,6 +5,62 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.0.12] - 2026-06-24
+
+### Fixed
+
+- **Commas inside the `16` Transaction Detail free-text field are now
+  preserved.** Previously the loader split the *entire* `16` record on
+  commas, so a real-world text field such as `ACH Credit
+  Payment,Entry Description: EXP; -, SEC: CCD, Client Ref ID: 1111` was
+  truncated/mangled after its first comma. The parser now splits only
+  the fixed leading fields (type code, amount, funds type, bank ref,
+  customer ref) and keeps the remainder — the `text` field — verbatim,
+  commas and all. This is a genuine bug fix that changes parsed
+  `description` output for any file with commas in transaction text.
+- **A `/` inside a `16`/`88` field is no longer mistaken for the record
+  terminator.** Only a single *trailing* `/` (the real terminator) is
+  stripped, so references and text containing slashes (e.g.
+  `Client Ref ID: AB/GS/TEST0001/RPBA0001`) survive intact.
+- **Funds-type-aware field positions.** A `V` (value-dated) or `S`
+  (distributed-availability) funds type inserts extra subfields before
+  the references; the loader now counts them so `bankRefNum`,
+  `customerRefNum`, and `text` are located correctly (real moov-io
+  `sample1` uses `V`).
+
+### Added
+
+- **Real-world BAI2 fixtures** vendored verbatim from the third-party
+  Apache-2.0 [moov-io/bai2](https://github.com/moov-io/bai2) test corpus
+  (`sample1.txt` and `sample5-issue113.txt`) under
+  `tests/fixtures/real/`, with an honest `PROVENANCE.md`. Golden tests
+  (`tests/test_real_fixtures_golden.py`) pin the exact `Transaction`
+  list and `Bai2Summary` for both files, proving the messy real data —
+  commas/slashes in text, `88` continuations carrying structured
+  sub-data (`EREF:`/`DBNM:`/...), a `88:` colon-delimited continuation,
+  trailing spaces after the terminator, and `88` continuations on an
+  `03` summary — parses correctly.
+- **`88` continuations carrying structured sub-data** are appended to
+  the preceding `16` description verbatim (commas included); the rare
+  `88:` colon-delimited form is tolerated. `88` continuations on an `03`
+  account summary are dropped rather than corrupting transactions.
+- **Mutation testing** with [`mutmut`](https://github.com/boxed/mutmut)
+  (`make mutation`, `[tool.mutmut]` config, and a `test_mutation_kills.py`
+  kill-suite). Score: 317/336 mutants killed; the 19 survivors are all
+  documented equivalent mutants in `tests/MUTATION.md` (100% of
+  non-equivalent mutants killed).
+
+### Changed
+
+- Simplified the continuation-routing state: an `88` now attaches solely
+  to the live pending `16` (every other record flushes it first),
+  removing a redundant target variable while keeping behaviour identical.
+
+### Removed
+
+- Pruned the heavy `codeql` and `security` GitHub Actions workflows.
+  `ci`, `pr`, and `release` remain.
+
 ## [0.0.11] - 2026-06-24
 
 ### Changed
@@ -94,5 +150,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - interrogate: 100% docstring coverage.
 - ruff + black + mypy (`--strict`) all clean.
 
+[0.0.12]: https://github.com/sebastienrousseau/bankstatementparser-loader-bai2/releases/tag/v0.0.12
 [0.0.11]: https://github.com/sebastienrousseau/bankstatementparser-loader-bai2/releases/tag/v0.0.11
 [0.0.10]: https://github.com/sebastienrousseau/bankstatementparser-loader-bai2/releases/tag/v0.0.10

@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "bankstatementparser-loader-bai2"
-version = "0.0.11"
+version = "0.0.12"
 description = "BAI2 (Bank Administration Institute v2) cash-management loader that parses BAI2 files into bankstatementparser Transaction objects."
 authors = ["Sebastien Rousseau <sebastian.rousseau@gmail.com>"]
 license = "Apache-2.0"
@@ -24,6 +24,7 @@ ruff = "^0.1.0"
 mypy = "^1.11.0"
 bandit = "^1.7.0"
 interrogate = "^1.7.0"
+mutmut = "^3.6.0"
 
 [build-system]
 requires = ["poetry-core"]
@@ -107,3 +108,23 @@ ignore_missing_imports = true
 [[tool.mypy.overrides]]
 module = ["tests.*"]
 ignore_errors = true
+
+# Mutation testing (mutmut 3.x). Mutate only the package source and run
+# the test suite against each mutant; a surviving mutant means a
+# behaviour the tests do not pin. ``also_copy`` brings the repo-root docs
+# and examples into mutmut's sandbox copy so the docs / regression tests
+# (which read README / CHANGELOG / examples) still run there. See
+# tests/MUTATION.md for the score and any justified equivalent mutants.
+[tool.mutmut]
+source_paths = ["bankstatementparser_loader_bai2/"]
+# Run mutation analysis against the behavioural tests that exercise the
+# loader directly. The docs / regression suites assert documentation
+# consistency and ``exec`` README code blocks in-process (which collides
+# with mutmut's import trampoline), and they do not pin loader logic, so
+# they are excluded from the mutant runs. See tests/MUTATION.md.
+pytest_add_cli_args_test_selection = [
+    "tests/test_loader.py",
+    "tests/test_fixture_golden.py",
+    "tests/test_real_fixtures_golden.py",
+    "tests/test_mutation_kills.py",
+]
