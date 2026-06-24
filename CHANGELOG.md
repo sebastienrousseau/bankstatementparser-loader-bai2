@@ -5,6 +5,46 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.0.11] - 2026-06-24
+
+### Changed
+
+- **Type-code classification refined to the BAI2 spec's documented code
+  ranges.** The `16` Transaction Detail type code now maps to a
+  direction by range: `100`–`399` → credit (positive), `400`–`699` →
+  debit (negative), `700`–`799` → loan detail treated as a debit-side
+  disbursement (negative), and `900`–`999` → custom/summary/status codes
+  that are **not** emitted as transactions (any continuation attached to
+  a skipped status code is dropped with it). Non-numeric and otherwise
+  out-of-range codes keep the amount positive. The raw type code is
+  still preserved on every emitted `Transaction` in both `category`
+  (`bai2:<code>`) and `reference`. `summarize_bai2`'s
+  `transaction_count` now excludes skipped `900`–`999` codes so the
+  summary and the `load_bai2` list stay in step.
+
+### Added
+
+- Optional, fully-tested lookup of well-known BAI2 type-code
+  descriptions (`142` "ACH credit", `165` "Wire transfer credit", `301`
+  "Commercial deposit", `475` "Check paid", `501` "Wire transfer debit")
+  used to enrich a `16` record's `description` only when that record
+  carries no free-text of its own.
+- Install smoke-test CI job that builds the wheel, installs it (pulling
+  `bankstatementparser` from PyPI) into a fresh virtual environment, and
+  imports the package plus runs an example from a neutral working
+  directory.
+- A multi-group / multi-account BAI2 fixture under `tests/fixtures/`
+  exercising every type-code range (credit, debit, loan, status), `88`
+  continuations, and multiple `03` accounts, with golden-style tests
+  pinning the exact signed `Transaction` list and the full
+  `Bai2Summary`.
+
+### Removed
+
+- Pruned the `nightly` and `docs` GitHub Actions workflows (the project
+  is a small library; `ci`, `pr`, `codeql`, `security`, and `release`
+  remain).
+
 ## [0.0.10] - 2026-06-24
 
 ### Added
@@ -54,4 +94,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - interrogate: 100% docstring coverage.
 - ruff + black + mypy (`--strict`) all clean.
 
+[0.0.11]: https://github.com/sebastienrousseau/bankstatementparser-loader-bai2/releases/tag/v0.0.11
 [0.0.10]: https://github.com/sebastienrousseau/bankstatementparser-loader-bai2/releases/tag/v0.0.10

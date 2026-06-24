@@ -19,7 +19,7 @@ SAMPLE = (
     "16,165,150000,Z,BANKREF1,CUSTREF1,Incoming wire payment/\n"
     "88,from ACME Corp invoice 42/\n"
     "16,475,2500,Z,BANKREF2,,ATM withdrawal/\n"
-    "16,900,1000,Z,BANKREF3,,Misc adjustment/\n"
+    "16,710,1000,Z,BANKREF3,,Loan disbursement/\n"
     "49,152500,3/\n"
     "98,152500,1,5/\n"
     "99,152500,1,7/\n"

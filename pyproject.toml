@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "bankstatementparser-loader-bai2"
-version = "0.0.10"
+version = "0.0.11"
 description = "BAI2 (Bank Administration Institute v2) cash-management loader that parses BAI2 files into bankstatementparser Transaction objects."
 authors = ["Sebastien Rousseau <sebastian.rousseau@gmail.com>"]
 license = "Apache-2.0"

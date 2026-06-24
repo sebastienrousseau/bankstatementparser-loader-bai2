@@ -24,8 +24,8 @@ def _sample_bai2() -> str:
 
     Covers a File Header (01), Group Header (02), Account Identifier
     (03), a credit Transaction Detail (16), a continuation (88), a debit
-    Transaction Detail (16), an unknown-type Transaction Detail (16),
-    and the Account / Group / File trailers (49 / 98 / 99).
+    Transaction Detail (16), a loan Transaction Detail (16), and the
+    Account / Group / File trailers (49 / 98 / 99).
     """
     return (
         "01,SENDER,RECEIVER,260601,1200,FILE001,,,/\n"
@@ -34,7 +34,7 @@ def _sample_bai2() -> str:
         "16,165,150000,Z,BANKREF1,CUSTREF1,Incoming wire payment/\n"
         "88,from ACME Corp invoice 42/\n"
         "16,475,2500,Z,BANKREF2,,ATM withdrawal/\n"
-        "16,900,1000,Z,BANKREF3,,Misc adjustment/\n"
+        "16,710,1000,Z,BANKREF3,,Loan disbursement/\n"
         "49,152500,3/\n"
         "98,152500,1,5/\n"
         "99,152500,1,7/\n"
@@ -67,10 +67,12 @@ def test_debit_amount_is_negative_decimal() -> None:
     assert debit.amount < 0
 
 
-def test_unknown_type_code_stays_positive() -> None:
-    """A type code outside both ranges keeps the amount positive."""
-    other = load_bai2(_sample_bai2())[2]
-    assert other.amount == Decimal("10.00")
+def test_loan_amount_is_negative_decimal() -> None:
+    """A 700-799 loan type code is treated as a debit (negative)."""
+    loan = load_bai2(_sample_bai2())[2]
+    assert loan.amount == Decimal("-10.00")
+    assert loan.amount < 0
+    assert loan.category == "bai2:710"
 
 
 def test_raw_type_code_preserved_in_category_and_reference() -> None:
@@ -216,6 +218,84 @@ def test_non_numeric_type_code_keeps_amount_positive() -> None:
     assert txn.category == "bai2:ABC"
 
 
+def test_status_type_code_emits_no_transaction() -> None:
+    """A 900-999 custom/summary/status code yields no transaction."""
+    payload = (
+        "01,S,R,260601,1200,F1,/\n"
+        "02,RCVR,ORIG,1,260601,1200,USD,/\n"
+        "03,ACC1,USD,010,100,1,,/\n"
+        "16,905,1000,Z,REF,,Status line/\n"
+        "16,165,100,Z,REF2,,Real credit/\n"
+    )
+    txns = load_bai2(payload)
+    assert len(txns) == 1
+    assert txns[0].category == "bai2:165"
+
+
+def test_status_type_code_drops_its_continuation() -> None:
+    """An 88 after a skipped 900-999 code is dropped, not mis-attached."""
+    payload = (
+        "01,S,R,260601,1200,F1,/\n"
+        "02,RCVR,ORIG,1,260601,1200,USD,/\n"
+        "03,ACC1,USD,010,100,1,,/\n"
+        "16,905,1000,Z,REF,,Status line/\n"
+        "88,status continuation that must be dropped/\n"
+        "16,165,100,Z,REF2,,Real credit/\n"
+    )
+    txns = load_bai2(payload)
+    assert len(txns) == 1
+    assert txns[0].description == "Real credit"
+
+
+def test_status_type_code_excluded_from_summary_count() -> None:
+    """summarize_bai2 does not count skipped 900-999 status codes."""
+    payload = (
+        "01,S,R,260601,1200,F1,/\n"
+        "02,RCVR,ORIG,1,260601,1200,USD,/\n"
+        "03,ACC1,USD,010,100,1,,/\n"
+        "16,905,1000,Z,REF,,Status line/\n"
+        "16,165,100,Z,REF2,,Real credit/\n"
+    )
+    summary = summarize_bai2(payload)
+    assert summary.transaction_count == 1
+
+
+def test_type_code_description_enriches_empty_text() -> None:
+    """A 16 with no text gains a well-known type-code description."""
+    payload = (
+        "01,S,R,260601,1200,F1,/\n"
+        "02,RCVR,ORIG,1,260601,1200,USD,/\n"
+        "03,ACC1,USD,010,100,1,,/\n"
+        "16,475,100,Z,REF,,/\n"
+    )
+    txn = load_bai2(payload)[0]
+    assert txn.description == "Check paid"
+
+
+def test_record_text_overrides_type_code_description() -> None:
+    """A 16 with its own text keeps it, ignoring the lookup table."""
+    payload = (
+        "01,S,R,260601,1200,F1,/\n"
+        "02,RCVR,ORIG,1,260601,1200,USD,/\n"
+        "03,ACC1,USD,010,100,1,,/\n"
+        "16,475,100,Z,REF,,Cheque 12345 cleared/\n"
+    )
+    txn = load_bai2(payload)[0]
+    assert txn.description == "Cheque 12345 cleared"
+
+
+def test_unknown_type_code_without_lookup_leaves_description_none() -> None:
+    """A code with no text and no lookup entry stays description None."""
+    payload = (
+        "01,S,R,260601,1200,F1,/\n"
+        "02,RCVR,ORIG,1,260601,1200,USD,/\n"
+        "03,ACC1,USD,010,100,1,,/\n"
+        "16,166,100,Z,REF,,/\n"
+    )
+    txn = load_bai2(payload)[0]
+    assert txn.description is None
+
+
 def test_empty_type_code_yields_no_category_or_reference() -> None:
     """An empty type code leaves category and reference None."""
     payload = (
@@ -230,12 +310,12 @@ def test_empty_type_code_yields_no_category_or_reference() -> None:
 
 
 def test_empty_text_yields_none_description() -> None:
-    """A 16 record with no text leaves the description None."""
+    """A 16 with no text and no lookup entry leaves description None."""
     payload = (
         "01,S,R,260601,1200,F1,/\n"
         "02,RCVR,ORIG,1,260601,1200,USD,/\n"
         "03,ACC1,USD,010,100,1,,/\n"
-        "16,165,100,Z,REF,,/\n"
+        "16,166,100,Z,REF,,/\n"
     )
     txn = load_bai2(payload)[0]
     assert txn.description is None
@@ -420,7 +500,7 @@ def test_short_transaction_record_uses_empty_fields() -> None:
         "01,S,R,260601,1200,F1,/\n"
         "02,RCVR,ORIG,1,260601,1200,USD,/\n"
         "03,ACC1,USD,010,100,1,,/\n"
-        "16,165,100\n"
+        "16,166,100\n"
     )
     txn = load_bai2(payload)[0]
     assert txn.amount == Decimal("1.00")

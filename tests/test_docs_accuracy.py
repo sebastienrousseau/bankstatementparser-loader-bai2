@@ -15,7 +15,8 @@ The checks below assert, against the *actual* loader implementation:
 * the documented BAI2 record subset (``01``/``02``/``03``/``16``/``88``
   plus ignored trailers) matches the records the loader handles;
 * the documented credit/debit sign-convention table (``100``–``399``
-  credit, ``400``–``699`` debit) matches the loader's actual ranges;
+  credit, ``400``–``699`` debit, ``700``–``799`` loan/debit-side,
+  ``900``–``999`` skipped status) matches the loader's actual ranges;
 * every example path referenced in the docs exists.
 """
 
@@ -210,10 +211,45 @@ class TestSignConventionAccuracy:
         assert loader._signed_amount("475", magnitude) == -magnitude
         assert "made **negative**" in self.readme_text
 
-    def test_out_of_range_stays_positive_per_doc(self) -> None:
-        """A code outside both ranges keeps the amount positive."""
+    def test_loan_range_matches_loader(self) -> None:
+        """The loader's loan range is 700–799 as the README states."""
+        assert loader._LOAN_RANGE == range(700, 800)
+        assert "`700`" in self.readme_text and "`799`" in self.readme_text
+
+    def test_loan_is_negative_per_doc(self) -> None:
+        """A loan-range type code is treated as a debit (negated)."""
         magnitude = loader.Decimal("10.00")
-        assert loader._signed_amount("900", magnitude) == magnitude
+        assert loader._signed_amount("710", magnitude) == -magnitude
+        assert "debit-side disbursement" in self.readme_text
+
+    def test_status_range_matches_loader(self) -> None:
+        """The loader's status range is 900–999 as the README states."""
+        assert loader._STATUS_RANGE == range(900, 1000)
+        assert "`900`" in self.readme_text and "`999`" in self.readme_text
+
+    def test_status_codes_are_skipped_per_doc(self) -> None:
+        """A 900–999 status code emits no transaction, as documented."""
+        assert loader._is_status_type_code("905") is True
+        assert loader._is_status_type_code("475") is False
+        assert "no `Transaction` emitted" in self.readme_text
+
+    def test_out_of_range_non_numeric_stays_positive_per_doc(self) -> None:
+        """A non-numeric code keeps the amount positive, as documented."""
+        magnitude = loader.Decimal("10.00")
+        assert loader._signed_amount("ABC", magnitude) == magnitude
+        assert "kept **positive**" in self.readme_text
+
+    def test_type_code_descriptions_lookup_matches_doc(self) -> None:
+        """Documented well-known type-code descriptions exist in code."""
+        for code, label in (
+            ("142", "ACH credit"),
+            ("301", "Commercial deposit"),
+            ("475", "Check paid"),
+            ("501", "Wire transfer debit"),
+        ):
+            assert loader._description_for_type_code(code) == label
+            assert label in self.readme_text
+        assert loader._description_for_type_code("000") is None
 
 
 # ----------------------------------------------------------------------
