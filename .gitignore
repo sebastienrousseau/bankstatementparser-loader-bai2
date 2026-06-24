@@ -36,3 +36,8 @@ tmp/
 .mypy_cache/
 .ruff_cache/
 bankstatementparser_loader_bai2.egg-info/
+
+# Mutation testing (mutmut)
+mutants/
+.mutmut-cache
+mutants.db

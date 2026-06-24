@@ -62,7 +62,8 @@ can consume unchanged.
 | Amounts | BAI2 minor-unit integers (cents) converted to `Decimal` (never `float`) |
 | Debit / credit | Derived from the `16` type-code range, with the raw code preserved |
 | Multiple accounts | All `16` records across every group / account are flattened into one list |
-| Robustness | Tolerates CRLF, blank lines, and an optional trailing `/` per record |
+| Real-world text | The `16` free-text field (and `88` continuations) is kept verbatim — commas and slashes inside it are preserved, not split on |
+| Robustness | Tolerates CRLF, blank lines, trailing spaces, an optional trailing `/` per record, and `V`/`S` funds-type subfields |
 | Errors | A clear `ValueError` if the file does not start with an `01` File Header |
 
 ---
@@ -173,8 +174,8 @@ each beginning with a numeric type code. This loader implements a
 | `01` | File Header | **Required first record.** `fileId` captured for the summary. |
 | `02` | Group Header | Group `currency` and as-of date captured. |
 | `03` | Account Identifier | `accountNumber` + optional `currencyCode` captured; account currency overrides group currency. |
-| `16` | Transaction Detail | One transaction. |
-| `88` | Continuation | Appended to the preceding `03`/`16` record's text. |
+| `16` | Transaction Detail | One transaction. The free-text field runs to end-of-record (commas included) and is kept verbatim; `V`/`S` funds-type subfields are accounted for when locating the references and text. |
+| `88` | Continuation | Appended verbatim (commas included) to the preceding `16` record's text. A `88` continuing an `03` summary, or one with no preceding `16`, is dropped rather than mis-attached. The rare `88:` colon form is tolerated. |
 | `49` / `98` / `99` | Account / Group / File trailers | **Ignored** — control totals are not validated. |
 
 Any other (or unknown) leading type code is ignored so that vendor
@@ -248,10 +249,13 @@ A `Makefile` orchestrates the quality gates (kept in lockstep with CI):
 | `make lint` | `ruff check` + `black --check` |
 | `make type-check` | `mypy --strict` |
 | `make doc-coverage` | `interrogate --fail-under=100` (docstring coverage) |
+| `make mutation` | `mutmut run` + `mutmut results` (mutation testing) |
 
-Current state (v0.0.11): **all tests passing, 100% line + branch
+Current state (v0.0.12): **all tests passing, 100% line + branch
 coverage** against a 100% enforced floor, `mypy --strict` clean,
-interrogate 100%.
+interrogate 100%, and a mutation-tested loader (317/336 mutants killed;
+the 19 survivors are documented equivalent mutants — see
+[`tests/MUTATION.md`](tests/MUTATION.md)).
 
 ---
 
