@@ -101,3 +101,9 @@ exclude = [
 [[tool.mypy.overrides]]
 module = "bankstatementparser.*"
 ignore_missing_imports = true
+
+# Tests use pytest fixtures, subprocess plumbing, and dynamic exec of
+# documented snippets; strict typing there is noise, not signal.
+[[tool.mypy.overrides]]
+module = ["tests.*"]
+ignore_errors = true

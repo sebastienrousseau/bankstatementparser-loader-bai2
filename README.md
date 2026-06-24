@@ -119,8 +119,8 @@ payload = (
 
 for txn in load_bai2(payload):
     print(txn.amount, txn.category, txn.description)
-# 1500.00 bai2:165 Incoming wire payment from ACME Corp invoice 42
-# -25.00  bai2:475 ATM withdrawal
+# 1500 bai2:165 Incoming wire payment from ACME Corp invoice 42
+# -25 bai2:475 ATM withdrawal
 ```
 
 Runnable versions live in [`examples/`](examples/).
