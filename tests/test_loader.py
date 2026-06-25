@@ -401,6 +401,23 @@ def test_missing_as_of_date_leaves_booking_date_none() -> None:
     assert txn.booking_date is None
 
 
+def test_impossible_calendar_date_leaves_booking_date_none() -> None:
+    """A 6-digit but invalid calendar as-of date yields booking_date None.
+
+    ``isdigit`` only guarantees six digits, not a real date: month ``13``
+    here passes that guard but ``strptime`` rejects it, so the loader must
+    fall back to ``None`` rather than raising.
+    """
+    payload = (
+        "01,S,R,261301,1200,F1,/\n"
+        "02,RCVR,ORIG,1,261301,1200,USD,/\n"
+        "03,ACC1,USD,010,100,1,,/\n"
+        "16,165,100,Z,REF,,Bad month/\n"
+    )
+    txn = load_bai2(payload)[0]
+    assert txn.booking_date is None
+
+
 def test_old_century_date_window() -> None:
     """A YY >= 80 as-of date maps to the 1900s."""
     payload = (
