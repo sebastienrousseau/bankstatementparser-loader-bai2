@@ -425,7 +425,11 @@ def _parse_bai2_date(raw: str) -> date | None:
         return datetime.strptime(
             f"{century + year:04d}{text[2:4]}{text[4:6]}", "%Y%m%d"
         ).date()
-    except ValueError:  # pragma: no cover - guarded by the isdigit check
+    except ValueError:
+        # Six digits that pass ``isdigit`` can still be an impossible
+        # calendar date (e.g. month ``13`` or ``00``, or 30 February).
+        # ``strptime`` rejects those, and a malformed as-of date must
+        # never abort the parse, so we yield ``None`` instead of raising.
         return None
 
 

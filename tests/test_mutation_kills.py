@@ -67,6 +67,21 @@ def test_date_month_and_day_slices_are_correct() -> None:
     assert loader._parse_bai2_date("261107") == date(2026, 11, 7)
 
 
+def test_date_impossible_month_rejected() -> None:
+    """A 6-digit value with month 13 is rejected via strptime's ValueError.
+
+    This pins the ``except ValueError`` branch: ``isdigit`` accepts the
+    six digits, but ``strptime`` rejects month ``13``, so the helper must
+    return ``None`` rather than raise.
+    """
+    assert loader._parse_bai2_date("261301") is None
+
+
+def test_date_impossible_day_rejected() -> None:
+    """A 6-digit value with day 30 in February is rejected by strptime."""
+    assert loader._parse_bai2_date("260230") is None
+
+
 def test_date_wrong_length_rejected() -> None:
     """A non-6-char value is rejected (kills the 'or' -> 'and' mutant)."""
     # 5 digits: length is wrong though it is all digits, so 'or' is
