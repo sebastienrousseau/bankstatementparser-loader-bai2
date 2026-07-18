@@ -72,7 +72,7 @@ can consume unchanged.
 
 | Channel | Command | Notes |
 | :--- | :--- | :--- |
-| PyPI | `pip install bankstatementparser-loader-bai2` | Pulls in `bankstatementparser >= 0.0.9` |
+| PyPI | `pip install bankstatementparser-loader-bai2` | Pulls in `bankstatementparser >= 0.0.11` |
 | Source | `git clone https://github.com/sebastienrousseau/bankstatementparser-loader-bai2 && cd bankstatementparser-loader-bai2 && poetry install` | For development |
 
 Requires Python 3.10 or later. Works on macOS, Linux, and Windows.
@@ -251,7 +251,7 @@ A `Makefile` orchestrates the quality gates (kept in lockstep with CI):
 | `make doc-coverage` | `interrogate --fail-under=100` (docstring coverage) |
 | `make mutation` | `mutmut run` + `mutmut results` (mutation testing) |
 
-Current state (v0.0.13): **all tests passing, 100% line + branch
+Current state (v0.0.14): **all tests passing, 100% line + branch
 coverage** against a 100% enforced floor, `mypy --strict` clean,
 interrogate 100%, and a mutation-tested loader (317/336 mutants killed;
 the 19 survivors are documented equivalent mutants — see
