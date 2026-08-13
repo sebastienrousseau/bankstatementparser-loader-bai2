@@ -859,14 +859,14 @@ files = [
 
 [[package]]
 name = "mutmut"
-version = "3.6.0"
+version = "3.7.0"
 description = "mutation testing for Python 3"
 optional = false
 python-versions = ">=3.10"
 groups = ["dev"]
 files = [
-    {file = "mutmut-3.6.0-py3-none-any.whl", hash = "sha256:a9f5b8dcf6cbf9496769d7cf8bdbba37a0ec709ad98f88d103238b62f10bdf37"},
-    {file = "mutmut-3.6.0.tar.gz", hash = "sha256:bcbd3e4d0d2d4edf3dfb42955417279a8866a3dbbcb87d619f2f3fd0ac7fafda"},
+    {file = "mutmut-3.7.0-py3-none-any.whl", hash = "sha256:1d2f9a1bfa4a474b2213df6b17223150b492bf4a85af0eda4fb322297337fb32"},
+    {file = "mutmut-3.7.0.tar.gz", hash = "sha256:dc93260fabb3a6fd3693aa8d1746825885cb6f9e66c7f9cc1a0f34fc6388e14a"},
 ]
 
 [package.dependencies]
