@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "bankstatementparser-loader-bai2"
-version = "0.0.14"
+version = "0.0.15"
 description = "BAI2 (Bank Administration Institute v2) cash-management loader that parses BAI2 files into bankstatementparser Transaction objects."
 authors = ["Sebastien Rousseau <sebastian.rousseau@gmail.com>"]
 license = "Apache-2.0 OR MIT"
@@ -39,7 +39,19 @@ testpaths = ["tests"]
 python_files = "test_*.py"
 python_classes = "Test*"
 python_functions = "test_*"
-addopts = ["-ra", "--strict-markers", "--tb=short"]
+addopts = [
+    "-ra",
+    "--strict-markers",
+    "--tb=short",
+    # Coverage runs on a plain local `pytest`, not only in CI. Without
+    # these a developer sees green and learns otherwise from the build.
+    # The floor itself is NOT restated here: pytest-cov honours
+    # fail_under from [tool.coverage.report], so the number lives in
+    # exactly one place.
+    "--cov=bankstatementparser_loader_bai2",
+    "--cov-branch",
+    "--cov-report=term-missing",
+]
 
 [tool.coverage.run]
 branch = true

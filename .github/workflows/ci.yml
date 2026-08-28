@@ -35,11 +35,10 @@ jobs:
 
       - name: Run tests with the 100% coverage gate
         run: |
-          pytest tests/ \
-            --cov=bankstatementparser_loader_bai2 --cov-branch \
-            --cov-report=term-missing \
-            --cov-report=xml \
-            --cov-fail-under=100 -v
+          # --cov, --cov-branch and the 100% floor all come from
+          # pyproject.toml, so a local `pytest` enforces exactly this.
+          # Only the XML report is CI-specific.
+          pytest tests/ --cov-report=xml -v
 
       - name: Enforce 100% docstring coverage
         run: interrogate -c pyproject.toml bankstatementparser_loader_bai2
