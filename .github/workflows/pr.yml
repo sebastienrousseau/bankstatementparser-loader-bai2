@@ -28,7 +28,7 @@ jobs:
       - name: Lint
         run: |
           ruff check bankstatementparser_loader_bai2/ tests/
-          black --check bankstatementparser_loader_bai2/ tests/
+          black --check bankstatementparser_loader_bai2/ tests/ benches/
 
       - name: Type check
         run: mypy bankstatementparser_loader_bai2/

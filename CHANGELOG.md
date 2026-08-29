@@ -5,6 +5,39 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.0.16] - 2026-08-29
+
+Brings this repository onto the **suite conformance gate**.
+
+### Added
+
+- **`benches/bench_load_bai2.py`** — a BAI2 bank-day file is sized by how
+  busy the business was, not by anything the caller chose, and month-end
+  is several times an ordinary Tuesday.
+
+  **Loading is linear** — `us/txn` moves 1.07x between 10 and 10,000
+  transactions across one account and across fifty. **`summarize_bai2`
+  costs 0.26–0.62x `load_bai2`**, so a caller that only wants totals
+  genuinely pays less; a ratio near 1.00 would have meant the summary
+  builds the full transaction list and discards it.
+
+  Nothing asserts a timing threshold — wall-clock is not comparable
+  between machines, and a flaky performance gate teaches people to ignore
+  red. CI runs `--quick`, so a benchmark that stops compiling fails the
+  build rather than rotting into a file that reads as verified.
+
+- **`tests/test_suite_conformance.py`** — invariants shared by every
+  repository in the suite, vendored from one canonical copy and
+  checksummed by its own test.
+
+### Changed
+
+- CI lints, formats and runs `benches/` alongside everything else.
+- `tomli` (on 3.10) and `packaging` are named as dev dependencies; the
+  conformance gate parses `pyproject.toml` and needs both.
+- `tests/test_suite_conformance.py` is excluded from black: it is
+  generated, and the suite uses three different line lengths.
+
 ## [0.0.15] - 2026-08-28
 
 ### Changed
@@ -194,6 +227,7 @@ the run, locally as well as in CI.
 - interrogate: 100% docstring coverage.
 - ruff + black + mypy (`--strict`) all clean.
 
+[0.0.16]: https://github.com/sebastienrousseau/bankstatementparser-loader-bai2/releases/tag/v0.0.16
 [0.0.15]: https://github.com/sebastienrousseau/bankstatementparser-loader-bai2/releases/tag/v0.0.15
 [0.0.14]: https://github.com/sebastienrousseau/bankstatementparser-loader-bai2/releases/tag/v0.0.14
 [0.0.13]: https://github.com/sebastienrousseau/bankstatementparser-loader-bai2/releases/tag/v0.0.13
