@@ -5,6 +5,29 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.0.18] - 2026-08-29
+
+Aligns the `bankstatementparser` suite on one version number, and adds
+the scheduled drift check this repository was missing.
+
+### Added
+
+- `scripts/check_suite_consistency.py` and a scheduled `Suite
+  Consistency` workflow compare this tree, and every published member of
+  the suite, against PyPI. A member left a release behind still installs
+  and still passes its own tests; only the index disagrees, and only if
+  somebody looks.
+
+### Changed
+
+- Version aligned to `0.0.18` across all six `bankstatementparser`
+  packages, which had drifted to `0.0.14`, `0.0.15`, `0.0.17`, `0.0.16`,
+  `0.0.16` and `0.0.15`.
+- Refreshed the vendored `tests/test_suite_conformance.py` to the current
+  canonical copy. Its drift-check probe now matches the bare word `pypi`
+  rather than the hostname, which CodeQL read as an incomplete URL
+  sanitisation.
+
 ## [0.0.16] - 2026-08-29
 
 Brings this repository onto the **suite conformance gate**.
@@ -227,6 +250,7 @@ the run, locally as well as in CI.
 - interrogate: 100% docstring coverage.
 - ruff + black + mypy (`--strict`) all clean.
 
+[0.0.18]: https://github.com/sebastienrousseau/bankstatementparser-loader-bai2/releases/tag/v0.0.18
 [0.0.16]: https://github.com/sebastienrousseau/bankstatementparser-loader-bai2/releases/tag/v0.0.16
 [0.0.15]: https://github.com/sebastienrousseau/bankstatementparser-loader-bai2/releases/tag/v0.0.15
 [0.0.14]: https://github.com/sebastienrousseau/bankstatementparser-loader-bai2/releases/tag/v0.0.14
