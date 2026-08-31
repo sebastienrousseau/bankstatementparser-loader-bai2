@@ -17,7 +17,7 @@ bai2 = "bankstatementparser_loader_bai2.loader:Bai2StatementParser"
 
 [tool.poetry.dependencies]
 python = ">=3.10,<4.0"
-bankstatementparser = ">=0.0.19"
+bankstatementparser = ">=0.0.18"
 
 [tool.poetry.group.dev.dependencies]
 pytest = ">=9.0.3,<10.0.0"
