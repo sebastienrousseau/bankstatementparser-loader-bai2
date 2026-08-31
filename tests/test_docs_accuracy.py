@@ -97,6 +97,7 @@ class TestPublicApiDocumented:
     def test_all_exports_are_the_expected_set(self) -> None:
         """``__all__`` is exactly the four documented public symbols."""
         assert set(pkg.__all__) == {
+            "Bai2StatementParser",
             "load_bai2",
             "load_bai2_file",
             "summarize_bai2",
@@ -116,6 +117,7 @@ class TestPublicApiDocumented:
     def test_loader_all_matches_package_all(self) -> None:
         """The loader's ``__all__`` matches the package surface."""
         assert set(loader.__all__) == {
+            "Bai2StatementParser",
             "load_bai2",
             "load_bai2_file",
             "summarize_bai2",
