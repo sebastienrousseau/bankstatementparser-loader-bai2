@@ -676,3 +676,12 @@ def test_bai2_statement_parser_wrapper(tmp_path: Path) -> None:
     assert empty_parser.parse().empty
     assert empty_parser.get_summary()["transaction_count"] == 0
 
+
+def test_is_credit_type_code_helper() -> None:
+    """_is_credit_type_code returns True for 100-399 and False otherwise."""
+    from bankstatementparser_loader_bai2.loader import _is_credit_type_code
+
+    assert _is_credit_type_code("165") is True
+    assert _is_credit_type_code("475") is False
+    assert _is_credit_type_code("invalid") is False
+

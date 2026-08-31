@@ -399,9 +399,15 @@ def _signed_amount(type_code: str, magnitude: Decimal) -> Decimal:
         return magnitude
     if code in _DEBIT_RANGE or code in _LOAN_RANGE:
         return -magnitude
-    if code in _CREDIT_RANGE:
-        return magnitude
     return magnitude
+
+
+def _is_credit_type_code(type_code: str) -> bool:
+    """Return ``True`` for a ``100``-``399`` credit code."""
+    try:
+        return int(type_code) in _CREDIT_RANGE
+    except ValueError:
+        return False
 
 
 def _parse_bai2_date(raw: str) -> date | None:
