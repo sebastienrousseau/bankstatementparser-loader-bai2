@@ -15,8 +15,6 @@ from hypothesis import strategies as st
 from bankstatementparser_loader_bai2.loader import (
     Bai2StatementParser,
     _amount_to_decimal,
-    _is_credit_type_code,
-    _is_status_type_code,
     _iter_records,
     _parse_bai2_date,
     _signed_amount,
@@ -61,7 +59,12 @@ def test_fuzz_amount_to_decimal(raw: str) -> None:
 @settings(max_examples=50, deadline=None)
 @given(
     st.text(min_size=0, max_size=20),
-    st.decimals(min_value=-1000000, max_value=1000000, allow_nan=False, allow_infinity=False),
+    st.decimals(
+        min_value=-1000000,
+        max_value=1000000,
+        allow_nan=False,
+        allow_infinity=False,
+    ),
 )
 def test_fuzz_signed_amount(type_code: str, magnitude: Decimal) -> None:
     """_signed_amount never raises on arbitrary type codes."""

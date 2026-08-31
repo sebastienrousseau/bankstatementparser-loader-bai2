@@ -127,9 +127,13 @@ from datetime import date, datetime
 from decimal import Decimal
 from pathlib import Path
 
+import pandas as pd
+from bankstatementparser.base_parser import BankStatementParser
+from bankstatementparser.record_types import SummaryRecord
 from bankstatementparser.transaction_models import Transaction
 
 __all__ = [
+    "Bai2StatementParser",
     "load_bai2",
     "load_bai2_file",
     "summarize_bai2",
@@ -676,10 +680,6 @@ def summarize_bai2(text: str) -> Bai2Summary:
         currency=currency,
     )
 
-import pandas as pd
-from bankstatementparser.base_parser import BankStatementParser
-from bankstatementparser.record_types import SummaryRecord
-
 
 class Bai2StatementParser(BankStatementParser):
     """BankStatementParser-compatible wrapper for BAI2 bank statement files."""
@@ -704,10 +704,26 @@ class Bai2StatementParser(BankStatementParser):
         text = Path(self.file_name).read_text(encoding="utf-8")
         s = summarize_bai2(text)
         self._summary = {
-            "account_id": str(df["account_id"].iloc[0]) if not df.empty and "account_id" in df.columns and df["account_id"].iloc[0] is not None else None,
-            "statement_date": str(df["booking_date"].iloc[-1]) if not df.empty and "booking_date" in df.columns and df["booking_date"].iloc[-1] is not None else None,
+            "account_id": (
+                str(df["account_id"].iloc[0])
+                if not df.empty
+                and "account_id" in df.columns
+                and df["account_id"].iloc[0] is not None
+                else None
+            ),
+            "statement_date": (
+                str(df["booking_date"].iloc[-1])
+                if not df.empty
+                and "booking_date" in df.columns
+                and df["booking_date"].iloc[-1] is not None
+                else None
+            ),
             "transaction_count": s.transaction_count,
-            "total_amount": sum(df["amount"], Decimal("0")) if not df.empty and "amount" in df.columns else Decimal("0"),
+            "total_amount": (
+                sum(df["amount"], Decimal("0"))
+                if not df.empty and "amount" in df.columns
+                else Decimal("0")
+            ),
             "opening_balance": None,
             "closing_balance": None,
             "currency": s.currency,

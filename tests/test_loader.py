@@ -7,6 +7,7 @@ from __future__ import annotations
 
 from datetime import date
 from decimal import Decimal
+from pathlib import Path
 
 import pytest
 
@@ -671,7 +672,10 @@ def test_bai2_statement_parser_wrapper(tmp_path: Path) -> None:
     assert parser.get_summary()["transaction_count"] == 3
 
     empty_file = tmp_path / "empty.bai2"
-    empty_file.write_text("01,S,R,260601,1200,F1,/\n02,RCVR,ORIG,1,260601,1200,USD,/\n99,0,1,3/\n", encoding="utf-8")
+    empty_file.write_text(
+        "01,S,R,260601,1200,F1,/\n02,RCVR,ORIG,1,260601,1200,USD,/\n99,0,1,3/\n",
+        encoding="utf-8",
+    )
     empty_parser = Bai2StatementParser(empty_file)
     assert empty_parser.parse().empty
     assert empty_parser.get_summary()["transaction_count"] == 0
@@ -684,4 +688,3 @@ def test_is_credit_type_code_helper() -> None:
     assert _is_credit_type_code("165") is True
     assert _is_credit_type_code("475") is False
     assert _is_credit_type_code("invalid") is False
-
