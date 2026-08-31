@@ -685,11 +685,13 @@ class Bai2StatementParser(BankStatementParser):
     """BankStatementParser-compatible wrapper for BAI2 bank statement files."""
 
     def __init__(self, file_name: str | Path) -> None:
+        """Initialize parser with path to BAI2 bank statement file."""
         super().__init__(file_name)
         self._parsed_df: pd.DataFrame | None = None
         self._summary: SummaryRecord | None = None
 
     def parse(self) -> pd.DataFrame:
+        """Parse BAI2 statement transactions into a pandas DataFrame."""
         if self._parsed_df is not None:
             return self._parsed_df.copy()
         txs = load_bai2_file(self.file_name)
@@ -698,6 +700,7 @@ class Bai2StatementParser(BankStatementParser):
         return self._parsed_df.copy()
 
     def get_summary(self) -> SummaryRecord:
+        """Return standardized summary record for the BAI2 statement."""
         if self._summary is not None:
             return self._summary
         df = self.parse()

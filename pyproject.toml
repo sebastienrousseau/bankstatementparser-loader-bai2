@@ -130,8 +130,15 @@ exclude = [
 ]
 
 [[tool.mypy.overrides]]
-module = "bankstatementparser.*"
+module = [
+    "bankstatementparser.*",
+    "pandas.*",
+]
 ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "bankstatementparser_loader_bai2.loader"
+disallow_subclassing_any = false
 
 # Tests use pytest fixtures, subprocess plumbing, and dynamic exec of
 # documented snippets; strict typing there is noise, not signal.
