@@ -9,11 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- `Bai2StatementParser` adapter registered under `bankstatementparser.loaders` entrypoint.
-
-### Changed
-
-- Updated `bankstatementparser` dependency floor to `>=0.0.19`.
+- `Bai2StatementParser` implementing `BankStatementParser` interface.
+- Registered entry point `bankstatementparser.loaders` for `bai2`.
+- Bumped dependency to `bankstatementparser >= 0.0.19`.
 
 ## [0.0.18] - 2026-08-29
 
@@ -260,6 +258,7 @@ the run, locally as well as in CI.
 - interrogate: 100% docstring coverage.
 - ruff + black + mypy (`--strict`) all clean.
 
+[0.0.19]: https://github.com/sebastienrousseau/bankstatementparser-loader-bai2/releases/tag/v0.0.19
 [0.0.18]: https://github.com/sebastienrousseau/bankstatementparser-loader-bai2/releases/tag/v0.0.18
 [0.0.16]: https://github.com/sebastienrousseau/bankstatementparser-loader-bai2/releases/tag/v0.0.16
 [0.0.15]: https://github.com/sebastienrousseau/bankstatementparser-loader-bai2/releases/tag/v0.0.15
@@ -268,5 +267,3 @@ the run, locally as well as in CI.
 [0.0.12]: https://github.com/sebastienrousseau/bankstatementparser-loader-bai2/releases/tag/v0.0.12
 [0.0.11]: https://github.com/sebastienrousseau/bankstatementparser-loader-bai2/releases/tag/v0.0.11
 [0.0.10]: https://github.com/sebastienrousseau/bankstatementparser-loader-bai2/releases/tag/v0.0.10
-
-[0.0.19]: https://github.com/sebastienrousseau/bankstatementparser-loader-bai2/releases/tag/v0.0.19

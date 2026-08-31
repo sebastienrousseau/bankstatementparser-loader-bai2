@@ -399,6 +399,8 @@ def _signed_amount(type_code: str, magnitude: Decimal) -> Decimal:
         return magnitude
     if code in _DEBIT_RANGE or code in _LOAN_RANGE:
         return -magnitude
+    if code in _CREDIT_RANGE:
+        return magnitude
     return magnitude
 
 
