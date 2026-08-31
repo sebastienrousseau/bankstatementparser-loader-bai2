@@ -15,15 +15,17 @@ record subset, amount handling, and debit / credit sign convention.
 """
 
 from bankstatementparser_loader_bai2.loader import (
+    Bai2StatementParser,
     Bai2Summary,
     load_bai2,
     load_bai2_file,
     summarize_bai2,
 )
 
-__version__ = "0.0.18"
+__version__ = "0.0.19"
 
 __all__ = [
+    "Bai2StatementParser",
     "load_bai2",
     "load_bai2_file",
     "summarize_bai2",

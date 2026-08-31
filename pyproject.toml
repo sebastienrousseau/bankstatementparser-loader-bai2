@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "bankstatementparser-loader-bai2"
-version = "0.0.18"
+version = "0.0.19"
 description = "BAI2 (Bank Administration Institute v2) cash-management loader that parses BAI2 files into bankstatementparser Transaction objects."
 authors = ["Sebastien Rousseau <sebastian.rousseau@gmail.com>"]
 license = "Apache-2.0 OR MIT"
@@ -12,9 +12,12 @@ packages = [
     { include = "bankstatementparser_loader_bai2" },
 ]
 
+[tool.poetry.plugins."bankstatementparser.loaders"]
+bai2 = "bankstatementparser_loader_bai2.loader:Bai2StatementParser"
+
 [tool.poetry.dependencies]
 python = ">=3.10,<4.0"
-bankstatementparser = ">=0.0.11"
+bankstatementparser = ">=0.0.19"
 
 [tool.poetry.group.dev.dependencies]
 pytest = ">=9.0.3,<10.0.0"
