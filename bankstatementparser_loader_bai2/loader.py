@@ -127,9 +127,13 @@ from datetime import date, datetime
 from decimal import Decimal
 from pathlib import Path
 
+import pandas as pd
+from bankstatementparser.base_parser import BankStatementParser
+from bankstatementparser.record_types import SummaryRecord
 from bankstatementparser.transaction_models import Transaction
 
 __all__ = [
+    "Bai2StatementParser",
     "load_bai2",
     "load_bai2_file",
     "summarize_bai2",
@@ -402,6 +406,14 @@ def _signed_amount(type_code: str, magnitude: Decimal) -> Decimal:
     return magnitude
 
 
+def _is_credit_type_code(type_code: str) -> bool:
+    """Return ``True`` for a ``100``-``399`` credit code."""
+    try:
+        return int(type_code) in _CREDIT_RANGE
+    except ValueError:
+        return False
+
+
 def _parse_bai2_date(raw: str) -> date | None:
     """Parse a BAI2 ``YYMMDD`` date into a :class:`datetime.date`.
 
@@ -667,3 +679,56 @@ def summarize_bai2(text: str) -> Bai2Summary:
         transaction_count=transaction_count,
         currency=currency,
     )
+
+
+class Bai2StatementParser(BankStatementParser):
+    """BankStatementParser-compatible wrapper for BAI2 bank statement files."""
+
+    def __init__(self, file_name: str | Path) -> None:
+        """Initialize parser with path to BAI2 bank statement file."""
+        super().__init__(file_name)
+        self._parsed_df: pd.DataFrame | None = None
+        self._summary: SummaryRecord | None = None
+
+    def parse(self) -> pd.DataFrame:
+        """Parse BAI2 statement transactions into a pandas DataFrame."""
+        if self._parsed_df is not None:
+            return self._parsed_df.copy()
+        txs = load_bai2_file(self.file_name)
+        records = [tx.model_dump() for tx in txs]
+        self._parsed_df = pd.DataFrame(records)
+        return self._parsed_df.copy()
+
+    def get_summary(self) -> SummaryRecord:
+        """Return standardized summary record for the BAI2 statement."""
+        if self._summary is not None:
+            return self._summary
+        df = self.parse()
+        text = Path(self.file_name).read_text(encoding="utf-8")
+        s = summarize_bai2(text)
+        self._summary = {
+            "account_id": (
+                str(df["account_id"].iloc[0])
+                if not df.empty
+                and "account_id" in df.columns
+                and df["account_id"].iloc[0] is not None
+                else None
+            ),
+            "statement_date": (
+                str(df["booking_date"].iloc[-1])
+                if not df.empty
+                and "booking_date" in df.columns
+                and df["booking_date"].iloc[-1] is not None
+                else None
+            ),
+            "transaction_count": s.transaction_count,
+            "total_amount": (
+                sum(df["amount"], Decimal("0"))
+                if not df.empty and "amount" in df.columns
+                else Decimal("0")
+            ),
+            "opening_balance": None,
+            "closing_balance": None,
+            "currency": s.currency,
+        }
+        return self._summary

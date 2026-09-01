@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "bankstatementparser-loader-bai2"
-version = "0.0.18"
+version = "0.0.19"
 description = "BAI2 (Bank Administration Institute v2) cash-management loader that parses BAI2 files into bankstatementparser Transaction objects."
 authors = ["Sebastien Rousseau <sebastian.rousseau@gmail.com>"]
 license = "Apache-2.0 OR MIT"
@@ -12,9 +12,12 @@ packages = [
     { include = "bankstatementparser_loader_bai2" },
 ]
 
+[tool.poetry.plugins."bankstatementparser.loaders"]
+bai2 = "bankstatementparser_loader_bai2.loader:Bai2StatementParser"
+
 [tool.poetry.dependencies]
 python = ">=3.10,<4.0"
-bankstatementparser = ">=0.0.11"
+bankstatementparser = ">=0.0.18"
 
 [tool.poetry.group.dev.dependencies]
 pytest = ">=9.0.3,<10.0.0"
@@ -30,6 +33,7 @@ mutmut = "^3.6.0"
 # backport the conformance gate does not run there at all.
 tomli = { version = ">=2", python = "<3.11" }
 packaging = ">=23"
+hypothesis = ">=6.82,<7"
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
@@ -126,8 +130,15 @@ exclude = [
 ]
 
 [[tool.mypy.overrides]]
-module = "bankstatementparser.*"
+module = [
+    "bankstatementparser.*",
+    "pandas.*",
+]
 ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "bankstatementparser_loader_bai2.loader"
+disallow_subclassing_any = false
 
 # Tests use pytest fixtures, subprocess plumbing, and dynamic exec of
 # documented snippets; strict typing there is noise, not signal.

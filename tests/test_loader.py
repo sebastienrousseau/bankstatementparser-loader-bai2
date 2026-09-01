@@ -7,6 +7,7 @@ from __future__ import annotations
 
 from datetime import date
 from decimal import Decimal
+from pathlib import Path
 
 import pytest
 
@@ -649,3 +650,41 @@ def test_bare_continuation_record_adds_no_text() -> None:
     )
     txn = load_bai2(payload)[0]
     assert txn.description == "Only base"
+
+
+def test_bai2_statement_parser_wrapper(tmp_path: Path) -> None:
+    """Bai2StatementParser integrates with BankStatementParser protocol."""
+    from bankstatementparser_loader_bai2.loader import Bai2StatementParser
+
+    test_file = tmp_path / "test.bai2"
+    test_file.write_text(_sample_bai2(), encoding="utf-8")
+
+    parser = Bai2StatementParser(test_file)
+    df = parser.parse()
+    assert len(df) == 3
+    # Cache hit check
+    assert len(parser.parse()) == 3
+
+    summary = parser.get_summary()
+    assert summary["transaction_count"] == 3
+    assert summary["currency"] == "USD"
+    # Cache hit check
+    assert parser.get_summary()["transaction_count"] == 3
+
+    empty_file = tmp_path / "empty.bai2"
+    empty_file.write_text(
+        "01,S,R,260601,1200,F1,/\n02,RCVR,ORIG,1,260601,1200,USD,/\n99,0,1,3/\n",
+        encoding="utf-8",
+    )
+    empty_parser = Bai2StatementParser(empty_file)
+    assert empty_parser.parse().empty
+    assert empty_parser.get_summary()["transaction_count"] == 0
+
+
+def test_is_credit_type_code_helper() -> None:
+    """_is_credit_type_code returns True for 100-399 and False otherwise."""
+    from bankstatementparser_loader_bai2.loader import _is_credit_type_code
+
+    assert _is_credit_type_code("165") is True
+    assert _is_credit_type_code("475") is False
+    assert _is_credit_type_code("invalid") is False
