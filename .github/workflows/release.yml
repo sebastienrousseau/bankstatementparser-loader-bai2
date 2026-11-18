@@ -36,6 +36,11 @@ jobs:
             exit 1
           fi
 
+      # The release body's Highlights are the one hand-written part.
+      # Refuse to publish anything when they are missing or malformed.
+      - name: Check release highlights
+        run: python3 scripts/release_notes.py check ".github/releases/$GITHUB_REF_NAME.md"
+
       - name: Build sdist + wheel
         run: python -m build
 
@@ -61,24 +66,52 @@ jobs:
           name: dist
           path: dist/
 
-      - name: Extract changelog section
-        id: changelog
+      - name: Require a CHANGELOG section
         run: |
           VERSION="${GITHUB_REF_NAME#v}"
-          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
-          awk "/^## \\[$VERSION\\]/{flag=1; next} /^## \\[/{flag=0} flag" CHANGELOG.md > release_notes.md
-          if [ ! -s release_notes.md ]; then
+          if ! grep -q "^## \\[$VERSION\\]" CHANGELOG.md; then
             echo "No CHANGELOG.md section for $VERSION" >&2
             exit 1
           fi
 
+      # Creates the release with the highlights as a placeholder body;
+      # the release-notes job writes the full body afterwards.
+      # Release titles read "<project> <version>", never the bare tag.
       - name: Create GitHub release
-        uses: softprops/action-gh-release@v3
-        with:
-          # Release titles read "<project> <version>", never the bare tag.
-          name: ${{ github.event.repository.name }} ${{ steps.changelog.outputs.version }}
-          body_path: release_notes.md
-          files: dist/*
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          if ! gh release view "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" > /dev/null 2>&1; then
+            gh release create "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --verify-tag \
+              --title "${GITHUB_REPOSITORY#*/} ${GITHUB_REF_NAME#v}" \
+              --notes-file ".github/releases/$GITHUB_REF_NAME.md"
+          fi
+          gh release upload "$GITHUB_REF_NAME" dist/* --repo "$GITHUB_REPOSITORY" --clobber
+
+  # Runs after the assets are attached, so the Checksums section covers
+  # every one, and rewrites the title and body in the suite's format
+  # (scripts/release_notes.py).
+  release-notes:
+    name: Write the release notes
+    needs: github-release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Compose and apply the release notes
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh release download "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --dir assets
+          python3 scripts/release_notes.py compose \
+            --repo "$GITHUB_REPOSITORY" --tag "$GITHUB_REF_NAME" \
+            --highlights ".github/releases/$GITHUB_REF_NAME.md" \
+            --assets assets --output release-notes.md
+          gh release edit "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" \
+            --title "${GITHUB_REPOSITORY#*/} ${GITHUB_REF_NAME#v}" \
+            --notes-file release-notes.md
 
   pypi-publish:
     name: Publish to PyPI
