@@ -5,13 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.0.31] - 2026-11-18
 
 ### Changed
 
+- Require `bankstatementparser >= 0.0.30`, the newest core release, and
+  align the version with the suite's 0.0.31 release.
 - Release titles read `bankstatementparser-loader-bai2 <version>` instead of the bare tag.
 
-## [0.0.30] - Unreleased
+## [0.0.30] - 2026-11-18
 
 ### Changed
 
@@ -280,6 +282,7 @@ the run, locally as well as in CI.
 - interrogate: 100% docstring coverage.
 - ruff + black + mypy (`--strict`) all clean.
 
+[0.0.31]: https://github.com/sebastienrousseau/bankstatementparser-loader-bai2/releases/tag/v0.0.31
 [0.0.30]: https://github.com/sebastienrousseau/bankstatementparser-loader-bai2/releases/tag/v0.0.30
 [0.0.28]: https://github.com/sebastienrousseau/bankstatementparser-loader-bai2/releases/tag/v0.0.28
 [0.0.19]: https://github.com/sebastienrousseau/bankstatementparser-loader-bai2/releases/tag/v0.0.19
