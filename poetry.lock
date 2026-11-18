@@ -118,14 +118,14 @@ yaml = ["PyYAML"]
 
 [[package]]
 name = "bankstatementparser"
-version = "0.0.32"
+version = "0.0.33"
 description = "Parse bank statements (CAMT, PAIN.001, MT940, MT942, OFX, BAI2, CSV, and PDF) into unified Transactions with treasury analytics, 2-way reconciliation, PDF forensics, and ledger export."
 optional = false
 python-versions = "<4.0,>=3.10"
 groups = ["main"]
 files = [
-    {file = "bankstatementparser-0.0.32-py3-none-any.whl", hash = "sha256:9107eed12ffaff8d70c7a48b348c0d15d6e47baaac7f1bb7e04881910a55476a"},
-    {file = "bankstatementparser-0.0.32.tar.gz", hash = "sha256:a1a18a61ecc70b85961d7939f7dcd20c6f9df4ac75e9c2fb108f0e6f3b4e770a"},
+    {file = "bankstatementparser-0.0.33-py3-none-any.whl", hash = "sha256:86ffb41c02ee05e253c1481e361f8a48db3bfb4fe6ca87e831acb6f18a0d0a1e"},
+    {file = "bankstatementparser-0.0.33.tar.gz", hash = "sha256:391b9e8a3df8ecf2e5c4f4783b219b0dc64e40d6e37edbac42175cb65ce2ca3d"},
 ]
 
 [package.dependencies]
@@ -2244,4 +2244,4 @@ test = ["coverage", "pytest", "pytest-cov"]
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.10,<4.0"
-content-hash = "3e5c147e5786cb52cfab15ac9fdd438d2bcd70b70d92464a1f02f4a4e9975795"
+content-hash = "dbf7ed44b7df3cd8bd3906d47e111fe0afb7f5e49d1e779b0d520067235b1e2c"
