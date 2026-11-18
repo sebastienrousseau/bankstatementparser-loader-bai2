@@ -65,6 +65,7 @@ jobs:
         id: changelog
         run: |
           VERSION="${GITHUB_REF_NAME#v}"
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
           awk "/^## \\[$VERSION\\]/{flag=1; next} /^## \\[/{flag=0} flag" CHANGELOG.md > release_notes.md
           if [ ! -s release_notes.md ]; then
             echo "No CHANGELOG.md section for $VERSION" >&2
@@ -74,6 +75,8 @@ jobs:
       - name: Create GitHub release
         uses: softprops/action-gh-release@v3
         with:
+          # Release titles read "<project> <version>", never the bare tag.
+          name: ${{ github.event.repository.name }} ${{ steps.changelog.outputs.version }}
           body_path: release_notes.md
           files: dist/*
 
