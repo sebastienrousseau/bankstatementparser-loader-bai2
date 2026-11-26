@@ -1,0 +1,27 @@
+{
+  "bankstatementparser_loader_bai2/loader.py": {
+    "file_lines": 734
+  },
+  "bankstatementparser_loader_bai2/loader.py::load_bai2": {
+    "cognitive": 21,
+    "cyclomatic": 15,
+    "lines": 90
+  },
+  "bankstatementparser_loader_bai2/loader.py::summarize_bai2": {
+    "cognitive": 20,
+    "cyclomatic": 14
+  },
+  "tests/test_loader.py": {
+    "file_lines": 690
+  },
+  "tests/test_real_fixtures_golden.py": {
+    "file_lines": 529
+  },
+  "tests/test_suite_conformance.py": {
+    "file_lines": 678
+  },
+  "tests/test_suite_conformance.py::_dev_spec": {
+    "cognitive": 23,
+    "cyclomatic": 12
+  }
+}

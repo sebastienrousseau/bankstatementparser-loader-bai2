@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.0.35] - 2026-11-26
 
+### Added
+
+- `scripts/check_complexity.py`, the suite's standard-library
+  complexity gate, copied byte for byte from `bankstatementparser`:
+  cyclomatic 10, cognitive 15, Halstead difficulty 30 and 60 lines per
+  function, 500 lines per file. The 7 functions and files already over
+  a ceiling are recorded in `scripts/complexity_baseline.json`; CI and
+  `make check` fail when one gets worse, a new one appears, or an
+  improvement is left unrecorded, so the baseline can only shrink.
+
 ### Changed
 
 - Require `bankstatementparser >= 0.0.34`, the newest core release, and

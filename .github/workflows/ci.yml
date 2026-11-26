@@ -99,6 +99,9 @@ jobs:
       - name: Mypy
         run: mypy bankstatementparser_loader_bai2/
 
+      - name: Complexity baseline
+        run: python3 scripts/check_complexity.py
+
   examples:
     name: Examples
     runs-on: ubuntu-latest
