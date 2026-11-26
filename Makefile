@@ -1,4 +1,4 @@
-.PHONY: help install dev test lint format type-check security clean examples doc-coverage mutation check
+.PHONY: help install dev test lint format type-check security clean examples doc-coverage mutation complexity check
 
 PYTHON ?= python3
 POETRY ?= poetry
@@ -51,4 +51,11 @@ mutation: ## Run mutation testing (mutmut) and print the kill score
 	$(POETRY) run mutmut run
 	$(POETRY) run mutmut results
 
-check: lint type-check test doc-coverage examples ## Run all gates
+# Per-function ceilings (cyclomatic 10, cognitive 15, Halstead 30,
+# 60 lines; 500 lines per file) against scripts/complexity_baseline.json,
+# which may only shrink. Record an improvement with
+# `python3 scripts/check_complexity.py --update`.
+complexity: ## Enforce the complexity baseline
+	$(PYTHON) scripts/check_complexity.py
+
+check: lint type-check complexity test doc-coverage examples ## Run all gates

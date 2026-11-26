@@ -5,6 +5,27 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.0.35] - 2026-11-26
+
+### Added
+
+- `scripts/check_complexity.py`, the suite's standard-library
+  complexity gate, copied byte for byte from `bankstatementparser`:
+  cyclomatic 10, cognitive 15, Halstead difficulty 30 and 60 lines per
+  function, 500 lines per file. The 7 functions and files already over
+  a ceiling are recorded in `scripts/complexity_baseline.json`; CI and
+  `make check` fail when one gets worse, a new one appears, or an
+  improvement is left unrecorded, so the baseline can only shrink.
+
+### Changed
+
+- Require `bankstatementparser >= 0.0.34`, the newest core release, and
+  align the version with the suite's 0.0.35 release, in which all
+  fourteen packages and bankstatementparser.com share one version.
+- `scripts/check_suite_consistency.py` now checks all fourteen suite
+  packages on PyPI and the bankstatementparser.com GitHub release.
+- Development dependency `ruff` updated from 0.17.5 to 0.17.6.
+
 ## [0.0.34] - 2026-11-18
 
 ### Changed
@@ -316,6 +337,7 @@ the run, locally as well as in CI.
 - interrogate: 100% docstring coverage.
 - ruff + black + mypy (`--strict`) all clean.
 
+[0.0.35]: https://github.com/sebastienrousseau/bankstatementparser-loader-bai2/releases/tag/v0.0.35
 [0.0.34]: https://github.com/sebastienrousseau/bankstatementparser-loader-bai2/releases/tag/v0.0.34
 [0.0.33]: https://github.com/sebastienrousseau/bankstatementparser-loader-bai2/releases/tag/v0.0.33
 [0.0.32]: https://github.com/sebastienrousseau/bankstatementparser-loader-bai2/releases/tag/v0.0.32
