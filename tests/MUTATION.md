@@ -29,18 +29,26 @@ trampoline inside its sandbox copy.
 
 ## Score
 
+Run on 2026-11-27 (0.0.36) with mutmut 3.6, after the run stopped
+applying the suite's coverage floor (`pytest_add_cli_args = ["--no-cov"]`
+in `[tool.mutmut]`; under the trampoline that floor failed mutmut's
+stats run before any mutant was tried).
+
 | Metric | Value |
 | :--- | ---: |
-| Total mutants | 336 |
-| Killed | 317 |
-| Survived | 19 |
-| **Kill rate** | **94.3%** |
+| Total mutants | 481 |
+| Killed | 455 |
+| Survived | 26 |
+| **Kill rate** | **94.6%** |
 | **Kill rate excluding documented equivalent mutants** | **100%** |
 
-All 19 survivors are **equivalent mutants**: they change the source text
+All 26 survivors are **equivalent mutants**: they change the source text
 but cannot change observable behaviour for any valid (or invalid) input,
 so no test can distinguish them. Each is justified below. The remaining
-non-equivalent mutants are all killed.
+non-equivalent mutants are all killed. The total grew from 336 because
+`Bai2StatementParser` and `_amounts.py` are now mutated too;
+`test_mutation_kills.py` pins `Bai2StatementParser.get_summary` field
+by field and the malformed-amount message.
 
 ## Equivalent mutants (justified survivors)
 
@@ -72,7 +80,7 @@ These change the `maxsplit` argument of `record.split(",", 1)` /
 is read, and the first segment is identical regardless of `maxsplit`, so
 the returned code never changes.
 
-### `_split_16` funds-type guard / default (17, 18)
+### `_split_16` funds-type guard / default (23, 24)
 
 `len(parts) > 3` -> `> 4` and the `else ""` -> `else "XXXX"` only affect
 the `funds_type` value, which is solely fed to `_text_field_index`. When
@@ -81,9 +89,12 @@ funds-type value is never consumed; and `"XXXX"` maps to the same
 "no extra subfields" branch (`_FUNDS_TYPE_SUBFIELDS.get(...) == 0`) as
 `""`. No observable difference.
 
-### `_split_16` text guard `>` -> `>=` (38)
+### `_split_16` text guard `>` -> `>=` or `or True` (47, 50)
 
-`len(parts) > text_index` -> `>= text_index` differs only when
+`len(parts) > text_index` -> `>= text_index` (or a guard that is always
+true) differs only when `len(parts) <= text_index`. Then the mutant
+yields `",".join(parts[text_index:])`, an empty slice joined to `""`,
+exactly what the original returns. The `>=` case differs only when
 `len(parts) == text_index`. In that case the original yields `""`, and
 the mutant yields `",".join(parts[text_index:])` = `",".join([])` =
 `""`. Identical.
@@ -104,7 +115,7 @@ but the subsequent `datetime.strptime` is wrapped in a `try/except
 ValueError` that returns `None` for exactly those malformed values. Both
 branches return `None`, so the result is unchanged.
 
-### `_parse_bai2_date` day-slice `text[4:6]` -> `text[4:7]` (23)
+### `_parse_bai2_date` day-slice `text[4:6]` -> `text[4:7]` (25)
 
 The function only reaches this line when `len(text) == 6`, so `text[4:7]`
 and `text[4:6]` are the same two-character slice (slicing past the end is
@@ -126,3 +137,23 @@ case-insensitive `"UTF-8"` alias decode byte-for-byte identically to
 `"utf-8"`. (A non-equivalent failure would require a non-UTF-8 platform
 default *and* non-ASCII bytes, which this loader's text contract does not
 cover.)
+
+### `Bai2StatementParser.get_summary` encoding alias (4, 7)
+
+The same `encoding="utf-8"` -> `None` / `"UTF-8"` alias as
+`load_bai2_file`: identical for the test payloads on a UTF-8 platform,
+and `get_summary` reads the file only after `parse` has already decoded
+it as UTF-8.
+
+### `Bai2StatementParser.get_summary` `and` -> `or` on `df.empty` (20, 39, 63)
+
+`not df.empty and "<column>" in df.columns` -> `... or ...`. A frame
+built from at least one `Transaction` always has the `account_id`,
+`booking_date` and `amount` columns, and an empty frame has no columns,
+so the two operands are always equal and `and` / `or` agree.
+
+### `Bai2StatementParser.get_summary` `sum` start dropped (58)
+
+`sum(df["amount"], Decimal("0"))` -> `sum(df["amount"])` runs only on a
+non-empty frame. The integer start `0` plus the first `Decimal` is that
+`Decimal`, so the total is the same value and type.

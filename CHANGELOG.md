@@ -16,6 +16,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `ValueError` did not expect, `NaN` surfaced as a pydantic error, and
   `1e5` or `12.50` were loaded as 1000.00 or 0.125. The conversion
   moves to `bankstatementparser_loader_bai2/_amounts.py`.
+- `make mutation` ran no mutant: the suite's 100% coverage floor
+  applied inside mutmut's trampoline and failed its stats run. The run
+  now passes `--no-cov`, and new tests pin
+  `Bai2StatementParser.get_summary` and the malformed-amount message;
+  `tests/MUTATION.md` records 455 of 481 mutants killed, every survivor
+  a documented equivalent.
 
 ### Added
 

@@ -187,6 +187,11 @@ source_paths = ["bankstatementparser_loader_bai2/"]
 # consistency and ``exec`` README code blocks in-process (which collides
 # with mutmut's import trampoline), and they do not pin loader logic, so
 # they are excluded from the mutant runs. See tests/MUTATION.md.
+# The coverage floor in [tool.pytest.ini_options] addopts applies to
+# the whole suite; a mutant run executes only the behavioural tests
+# under mutmut's trampoline, so coverage is meaningless there and its
+# 100% floor would fail mutmut's stats run before any mutant is tried.
+pytest_add_cli_args = ["--no-cov"]
 pytest_add_cli_args_test_selection = [
     "tests/test_loader.py",
     "tests/test_fixture_golden.py",

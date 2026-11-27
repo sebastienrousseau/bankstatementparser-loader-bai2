@@ -314,3 +314,77 @@ def test_unknown_record_does_not_flush_pending() -> None:
     )
     txn = load_bai2(payload)[0]
     assert txn.description == "base and continuation"
+
+
+def test_statement_parser_summary_pins_every_field(tmp_path) -> None:
+    """Bai2StatementParser.get_summary fills each field from the file."""
+    path = tmp_path / "statement.bai"
+    path.write_text(
+        "01,S,R,260601,1200,F1,,,/\n"
+        "02,R,O,1,260601,1200,USD,/\n"
+        "03,ACC1,EUR,/\n"
+        "16,165,150000,Z,REF1,,Wire/\n"
+        "16,475,2500,Z,REF2,,Fee/\n",
+        encoding="utf-8",
+    )
+    parser = loader.Bai2StatementParser(path)
+    summary = parser.get_summary()
+    assert summary == {
+        "account_id": "ACC1",
+        "statement_date": "2026-06-01",
+        "transaction_count": 2,
+        "total_amount": Decimal("1475.00"),
+        "opening_balance": None,
+        "closing_balance": None,
+        "currency": "EUR",
+    }
+    assert parser.get_summary() is summary
+
+
+def test_statement_parser_summary_of_an_empty_file(tmp_path) -> None:
+    """A file with no transactions summarises to empty fields."""
+    path = tmp_path / "empty.bai"
+    path.write_text("01,S,R,260601,1200,F1,,,/\n", encoding="utf-8")
+    assert loader.Bai2StatementParser(path).get_summary() == {
+        "account_id": None,
+        "statement_date": None,
+        "transaction_count": 0,
+        "total_amount": Decimal("0"),
+        "opening_balance": None,
+        "closing_balance": None,
+        "currency": None,
+    }
+
+
+def test_malformed_amount_error_names_the_field() -> None:
+    """The ValueError for a bad amount quotes the offending field."""
+    with pytest.raises(ValueError, match="BAI2 amount 'abc' is not"):
+        loader._amount_to_decimal("abc")
+
+
+def test_statement_parser_summary_reads_first_account_last_date(
+    tmp_path,
+) -> None:
+    """The summary takes the first row's account and the last row's date.
+
+    The middle row has neither (its group has no as-of date and no
+    ``03``), so reading any other row, or skipping the ``None`` check,
+    changes the result.
+    """
+    path = tmp_path / "three.bai"
+    path.write_text(
+        "01,S,R,260601,1200,F1,,,/\n"
+        "02,R,O,1,260601,1200,USD,/\n"
+        "03,ACC1,USD,/\n"
+        "16,165,100,Z,A,,One/\n"
+        "02,R,O,1,,,USD,/\n"
+        "16,165,200,Z,B,,Two/\n"
+        "02,R,O,1,260603,1200,USD,/\n"
+        "03,ACC3,USD,/\n"
+        "16,165,300,Z,C,,Three/\n",
+        encoding="utf-8",
+    )
+    summary = loader.Bai2StatementParser(path).get_summary()
+    assert summary["account_id"] == "ACC1"
+    assert summary["statement_date"] == "2026-06-03"
+    assert summary["total_amount"] == Decimal("6.00")
