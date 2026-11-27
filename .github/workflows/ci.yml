@@ -11,27 +11,39 @@ permissions:
 
 jobs:
   test:
-    name: Test (Python ${{ matrix.python-version }})
-    runs-on: ubuntu-latest
+    # Every Python the package supports (docs/POLICIES.md) on each of the
+    # three operating systems it claims to run on.
+    name: Test (${{ matrix.os }}, Python ${{ matrix.python-version }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
     strategy:
       fail-fast: false
       matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
         python-version: ["3.10", "3.11", "3.12", "3.13", "3.14"]
+    defaults:
+      run:
+        shell: bash
 
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v7
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: ${{ matrix.python-version }}
           cache: "pip"
 
-      - name: Install this package + dev tools
+      # requirements/ci.txt is exported from poetry.lock with hashes
+      # (scripts/export_locked_requirements.py), so every job installs the
+      # locked core, runtime and dev tools; the package itself goes on top
+      # without resolving anything further.
+      - name: Install locked dependencies + this package
         run: |
-          python -m pip install --upgrade pip
-          pip install -e .
-          pip install pytest pytest-cov interrogate hypothesis 'tomli; python_version<"3.11"'
+          pip install --require-hashes -r requirements/ci.txt
+          pip install --no-deps -e .
 
       - name: Run tests with the 100% coverage gate
         run: |
@@ -39,18 +51,21 @@ jobs:
           # pyproject.toml, so a local `pytest` enforces exactly this.
           # Only the XML report is CI-specific.
           pytest tests/ --cov-report=xml -v
-          # Not a timing gate -- wall-clock is not comparable between
-          # runners. This proves the benchmark still runs against the
-          # current API rather than rotting into a file that reads as
-          # verified and is not.
-          python benches/bench_load_bai2.py --quick
+
+      # The benchmark asserts no timing threshold -- wall-clock is not
+      # comparable between runners, and a flaky perf gate teaches
+      # people to ignore red. This proves it still runs against the
+      # current API rather than rotting into a file that reads as
+      # verified and is not.
+      - name: Run the benchmark
+        run: python benches/bench_load_bai2.py --quick
 
       - name: Enforce 100% docstring coverage
         run: interrogate -c pyproject.toml bankstatementparser_loader_bai2
 
       - name: Upload coverage XML
-        if: matrix.python-version == '3.12'
-        uses: actions/upload-artifact@v7
+        if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.12'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: coverage-xml
           path: coverage.xml
@@ -74,27 +89,40 @@ jobs:
   lint:
     name: Lint & Type Check
     runs-on: ubuntu-latest
+    timeout-minutes: 10
 
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Set up Python
-        uses: actions/setup-python@v7
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: "3.12"
           cache: "pip"
 
-      - name: Install this package + dev tools
+      - name: Install locked dependencies + this package
         run: |
-          python -m pip install --upgrade pip
-          pip install -e .
-          pip install ruff black mypy
+          pip install --require-hashes -r requirements/ci.txt
+          pip install --no-deps -e .
+
+      - name: Locked requirement exports match poetry.lock
+        run: |
+          python scripts/export_locked_requirements.py --with dev --output "$RUNNER_TEMP/ci.txt"
+          diff -u requirements/ci.txt "$RUNNER_TEMP/ci.txt"
+          python scripts/export_locked_requirements.py --output "$RUNNER_TEMP/runtime.txt"
+          diff -u requirements/runtime.txt "$RUNNER_TEMP/runtime.txt"
+          python scripts/export_locked_requirements.py --with fuzz --output "$RUNNER_TEMP/fuzz.txt"
+          diff -u requirements/fuzz.txt "$RUNNER_TEMP/fuzz.txt"
+          python scripts/export_locked_requirements.py --with docs --output "$RUNNER_TEMP/docs.txt"
+          diff -u requirements/docs.txt "$RUNNER_TEMP/docs.txt"
 
       - name: Ruff check
-        run: ruff check bankstatementparser_loader_bai2/ tests/
+        run: ruff check bankstatementparser_loader_bai2/ tests/ benches/ fuzz/
 
       - name: Black check
-        run: black --check bankstatementparser_loader_bai2/ tests/ benches/
+        run: black --check bankstatementparser_loader_bai2/ tests/ benches/ fuzz/
 
       - name: Mypy
         run: mypy bankstatementparser_loader_bai2/
@@ -105,57 +133,106 @@ jobs:
   examples:
     name: Examples
     runs-on: ubuntu-latest
+    timeout-minutes: 10
 
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Set up Python
-        uses: actions/setup-python@v7
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: "3.12"
           cache: "pip"
 
-      - name: Install this package
+      - name: Install locked runtime dependencies + this package
         run: |
-          python -m pip install --upgrade pip
-          pip install -e .
+          pip install --require-hashes -r requirements/runtime.txt
+          pip install --no-deps -e .
 
       - name: Run examples
         run: |
-          python examples/01_load_transactions.py
-          python examples/02_summarize_file.py
+          for f in examples/*.py; do echo "=== $f ==="; python "$f"; done
+
+  fuzz:
+    # Coverage-guided fuzzing of load_bai2 and summarize_bai2 with Atheris
+    # (libFuzzer), seeded from fuzz/corpus and the real-world fixtures.
+    # The target fails on any exception but the documented ValueError and
+    # on any malformed Transaction, so a crash here is a real defect.
+    name: Fuzz (Atheris)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.12"
+          cache: "pip"
+
+      - name: Install locked dependencies + this package
+        run: |
+          pip install --require-hashes -r requirements/fuzz.txt
+          pip install --no-deps -e .
+
+      - name: Fuzz the BAI2 loader
+        run: |
+          mkdir -p "$RUNNER_TEMP/corpus" "$RUNNER_TEMP/crashes"
+          python fuzz/fuzz_load_bai2.py "$RUNNER_TEMP/corpus" fuzz/corpus tests/fixtures/real \
+            -max_total_time=120 -timeout=25 \
+            -artifact_prefix="$RUNNER_TEMP/crashes/"
+
+      - name: Upload crash reproducers
+        if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: fuzz-crashes
+          path: ${{ runner.temp }}/crashes/
 
   smoke:
     name: Install smoke test
     runs-on: ubuntu-latest
+    timeout-minutes: 10
 
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Set up Python
-        uses: actions/setup-python@v7
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: "3.12"
           cache: "pip"
 
+      # Build the wheel and install it into a *clean* virtualenv so the
+      # only code on sys.path is the installed artifact (the source tree
+      # is deliberately excluded). This pulls bankstatementparser and its
+      # dependencies from PyPI and catches packaging / CI-vs-local
+      # divergence.
       - name: Build the wheel
         run: |
-          python -m pip install --upgrade pip build
-          python -m build --wheel
+          pip install --require-hashes -r requirements/ci.txt
+          python -m build
 
-      - name: Install the wheel into a fresh virtual environment
+      - name: Install the wheel into a clean venv
         run: |
+          # The venv's bundled pip installs a wheel; upgrading it would be
+          # an unpinned download the rest of the job does not need.
           python -m venv "$RUNNER_TEMP/smoke"
-          "$RUNNER_TEMP/smoke/bin/pip" install --upgrade pip
           "$RUNNER_TEMP/smoke/bin/pip" install dist/*.whl
 
       - name: Import the installed package and print its version
         run: |
-          "$RUNNER_TEMP/smoke/bin/python" -c \
-            "import bankstatementparser_loader_bai2 as b; print(b.__version__)"
+          "$RUNNER_TEMP/smoke/bin/python" \
+            -c "import bankstatementparser_loader_bai2; print(bankstatementparser_loader_bai2.__version__)"
 
       - name: Run an example from a neutral working directory
         run: |
           cd "$RUNNER_TEMP"
-          "$RUNNER_TEMP/smoke/bin/python" \
-            "$GITHUB_WORKSPACE/examples/01_load_transactions.py"
+          "$RUNNER_TEMP/smoke/bin/python" "$GITHUB_WORKSPACE/examples/01_load_transactions.py"
