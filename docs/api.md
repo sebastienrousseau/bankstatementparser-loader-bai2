@@ -1,19 +1,16 @@
-# Python API reference
+# API reference
 
-The importable Python surface of the loader (used by the runnable
-examples and any pipeline that consumes BAI2 files).
+The importable Python surface: the loading and summary functions, the
+`Bai2Summary` dataclass, and `Bai2StatementParser`, the
+`BankStatementParser` the core discovers through the
+`bankstatementparser.loaders` entry point. Generated from the docstrings
+by mkdocstrings.
 
-```{eval-rst}
-.. automodule:: bankstatementparser_loader_bai2
-   :members:
-   :undoc-members:
-```
-
-## Loader module
-
-```{eval-rst}
-.. automodule:: bankstatementparser_loader_bai2.loader
-   :members:
-   :undoc-members:
-   :show-inheritance:
-```
+::: bankstatementparser_loader_bai2.loader
+    options:
+      members:
+        - load_bai2
+        - load_bai2_file
+        - summarize_bai2
+        - Bai2Summary
+        - Bai2StatementParser

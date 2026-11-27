@@ -94,7 +94,9 @@ def test_fuzz_iter_records(text: str) -> None:
 @given(st.text(min_size=0, max_size=1000))
 def test_fuzz_bai2_statement_parser(text: str) -> None:
     """Bai2StatementParser wrapper never unhandled crashes on arbitrary file content."""
-    with tempfile.NamedTemporaryFile("w", suffix=".bai2", delete=False) as f:
+    with tempfile.NamedTemporaryFile(
+        "w", suffix=".bai2", delete=False, encoding="utf-8"
+    ) as f:
         f.write(text)
         f_path = f.name
     try:

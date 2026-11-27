@@ -1,0 +1,54 @@
+name: Security
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    # Weekly bandit + dependency review (Monday 04:00 UTC).
+    - cron: "0 4 * * 1"
+
+permissions:
+  contents: read
+
+jobs:
+  bandit:
+    name: Bandit (static analysis)
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - name: Set up Python
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7
+        with:
+          python-version: "3.12"
+          cache: "pip"
+
+      - name: Install locked dev tools (bandit)
+        run: pip install --require-hashes -r requirements/ci.txt
+
+      - name: Run bandit
+        run: bandit -r bankstatementparser_loader_bai2/ -ll
+
+  pip-audit:
+    name: pip-audit (vulnerable dependencies)
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - name: Set up Python
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7
+        with:
+          python-version: "3.12"
+          cache: "pip"
+
+      - name: Install locked dev tools (pip-audit)
+        run: pip install --require-hashes -r requirements/ci.txt
+
+      # Audits the locked sets that ship (runtime) and that CI runs
+      # (dev), rather than whatever the runner happens to have installed.
+      - name: Audit locked requirements
+        run: |
+          pip-audit --require-hashes --disable-pip -r requirements/runtime.txt
+          pip-audit --require-hashes --disable-pip -r requirements/ci.txt

@@ -5,27 +5,37 @@ on:
     tags:
       - "v*.*.*"
 
+# Least privilege at the top level; each job opts into only what it needs.
 permissions:
-  contents: write
-  id-token: write  # OIDC for PyPI trusted publishing
+  contents: read
 
 jobs:
-  build:
-    name: Build distributions
+  publish:
+    name: Build And Publish
     runs-on: ubuntu-latest
+    permissions:
+      contents: write       # create/update the GitHub Release
+      id-token: write       # OIDC token for PyPI Trusted Publishing + sigstore
+      attestations: write   # write SLSA build provenance attestations
+    # Must match the "Environment name" set on the PyPI trusted publisher.
+    environment:
+      name: pypi
+      url: https://pypi.org/p/bankstatementparser-loader-bai2
+    outputs:
+      hashes: ${{ steps.hash.outputs.hashes }}
+
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Set up Python
-        uses: actions/setup-python@v7
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: "3.12"
-          cache: "pip"
 
-      - name: Install build tooling
-        run: |
-          python -m pip install --upgrade pip
-          pip install build twine
+      - name: Install build tooling (hash-pinned)
+        run: pip install --require-hashes -r requirements/build.txt
 
       - name: Verify version matches tag
         run: |
@@ -36,36 +46,6 @@ jobs:
             exit 1
           fi
 
-      # The release body's Highlights are the one hand-written part.
-      # Refuse to publish anything when they are missing or malformed.
-      - name: Check release highlights
-        run: python3 scripts/release_notes.py check ".github/releases/$GITHUB_REF_NAME.md"
-
-      - name: Build sdist + wheel
-        run: python -m build
-
-      - name: Twine check
-        run: twine check dist/*
-
-      - name: Upload build artifacts
-        uses: actions/upload-artifact@v7
-        with:
-          name: dist
-          path: dist/
-
-  github-release:
-    name: GitHub release
-    needs: build
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v7
-
-      - name: Download dist
-        uses: actions/download-artifact@v8
-        with:
-          name: dist
-          path: dist/
-
       - name: Require a CHANGELOG section
         run: |
           VERSION="${GITHUB_REF_NAME#v}"
@@ -74,10 +54,64 @@ jobs:
             exit 1
           fi
 
+      # The release body's Highlights are the one hand-written part.
+      # Refuse to publish anything when they are missing or malformed.
+      - name: Check release highlights
+        run: python3 scripts/release_notes.py check ".github/releases/$GITHUB_REF_NAME.md"
+
+      - name: Build distributions
+        run: poetry build
+
+      - name: Check distributions
+        run: twine check dist/*
+
+      # The SLSA provenance subjects: sha256sum of each distribution,
+      # base64-encoded, as slsa-github-generator's generic generator
+      # expects. Taken before signing so only the wheel and sdist count.
+      - name: Hash distributions for SLSA provenance
+        id: hash
+        run: |
+          cd dist
+          echo "hashes=$(sha256sum -- * | base64 -w0)" >> "$GITHUB_OUTPUT"
+
+      # SLSA build provenance attestations for every distribution file,
+      # signed via sigstore keyless with the workflow's OIDC identity and
+      # verifiable with `gh attestation verify`.
+      - name: Generate SLSA build provenance attestation
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-path: "dist/*"
+
+      # Trusted Publishing (OIDC): no API token. ``attestations: true``
+      # emits PEP 740 sigstore attestations alongside the uploads;
+      # ``skip-existing`` keeps re-runs safe.
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@7245906fb61fa33a13554f9d5fb856fe61758086 # release/v1
+        with:
+          attestations: true
+          skip-existing: true
+
+      # Keyless sigstore signatures (Fulcio + Rekor via the workflow's OIDC
+      # identity, no secrets) for every distribution, attached to the
+      # GitHub release as .sig + .pem so the release is verifiably signed.
+      - name: Install cosign
+        uses: sigstore/cosign-installer@756fe2d284c7292c4e9b62c8a28f1e5629c59532 # v4.1.3
+        with:
+          cosign-release: "v2.4.3"
+
+      - name: Sign distributions (keyless)
+        run: |
+          for f in dist/*; do
+            cosign sign-blob --yes \
+              --output-signature "${f}.sig" \
+              --output-certificate "${f}.pem" \
+              "$f"
+          done
+
       # Creates the release with the highlights as a placeholder body;
       # the release-notes job writes the full body afterwards.
       # Release titles read "<project> <version>", never the bare tag.
-      - name: Create GitHub release
+      - name: Publish release artifacts to GitHub
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -89,15 +123,101 @@ jobs:
           fi
           gh release upload "$GITHUB_REF_NAME" dist/* --repo "$GITHUB_REPOSITORY" --clobber
 
-  # Runs after the assets are attached, so the Checksums section covers
-  # every one, and rewrites the title and body in the suite's format
-  # (scripts/release_notes.py).
+  sbom:
+    # CycloneDX + SPDX SBOMs and a pip-licenses manifest, attached to the
+    # release. ``needs: publish`` ensures the release object exists.
+    name: SBOM (CycloneDX + SPDX + licenses)
+    runs-on: ubuntu-latest
+    needs: [publish]
+    permissions:
+      contents: write       # upload SBOM + license manifests to the Release
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.12"
+
+      - name: Install Poetry (hash-pinned)
+        run: pip install --require-hashes -r requirements/build.txt
+
+      - name: Install runtime dependencies
+        run: poetry install --no-interaction --only main
+
+      - name: Install SBOM + license tooling (hash-pinned)
+        run: pip install --require-hashes -r requirements/sbom.txt
+
+      - name: Generate CycloneDX SBOM (JSON)
+        run: |
+          cyclonedx-py environment \
+            --of JSON \
+            -o "bankstatementparser-loader-bai2-${GITHUB_REF_NAME}.cdx.json" \
+            "$(poetry env info --executable)"
+
+      - name: Generate SPDX SBOM (JSON)
+        uses: anchore/sbom-action@66cbf4bc1f1c0d2edc94016e65bc221b6bb0ad6c # v0.24.3
+        with:
+          format: spdx-json
+          output-file: "bankstatementparser-loader-bai2-${{ github.ref_name }}.spdx.json"
+          upload-artifact: false
+          upload-release-assets: false
+
+      - name: Generate pip-licenses manifest
+        run: |
+          pip-licenses --python "$(poetry env info --executable)" \
+            --format=json \
+            --with-urls --with-license-file --no-license-path \
+            --output-file "bankstatementparser-loader-bai2-${GITHUB_REF_NAME}.licenses.json"
+
+      - name: Upload SBOMs + license manifest to release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release upload "$GITHUB_REF_NAME" \
+            "bankstatementparser-loader-bai2-${GITHUB_REF_NAME}.cdx.json" \
+            "bankstatementparser-loader-bai2-${GITHUB_REF_NAME}.spdx.json" \
+            "bankstatementparser-loader-bai2-${GITHUB_REF_NAME}.licenses.json" \
+            --repo "$GITHUB_REPOSITORY" --clobber
+
+  # SLSA Build Level 3 provenance for the wheel and sdist, attached to
+  # the GitHub release as <name>.intoto.jsonl (what Scorecard's
+  # Signed-Releases check looks for). slsa-github-generator's reusable
+  # workflow must be referenced by tag, not by commit SHA: it verifies
+  # its own ref to sign the provenance (see its README). Verify with
+  # `slsa-verifier verify-artifact --provenance-path <file>.intoto.jsonl
+  # --source-uri github.com/sebastienrousseau/bankstatementparser-loader-bai2 <artifact>`.
+  provenance:
+    name: SLSA provenance
+    needs: [publish]
+    permissions:
+      actions: read     # detect the GitHub Actions environment
+      id-token: write   # sign the provenance (sigstore keyless)
+      contents: write   # upload the provenance to the release
+    uses: slsa-framework/slsa-github-generator/.github/workflows/generator_generic_slsa3.yml@v2.1.0
+    with:
+      base64-subjects: "${{ needs.publish.outputs.hashes }}"
+      provenance-name: "bankstatementparser-loader-bai2-${{ github.ref_name }}.intoto.jsonl"
+      upload-assets: true
+
+  # Runs last, after the signatures, provenance and SBOMs are attached,
+  # so the Checksums section covers every asset. Rewrites the title and
+  # body in the suite's format (scripts/release_notes.py).
   release-notes:
     name: Write the release notes
-    needs: github-release
+    needs: [publish, sbom, provenance]
     runs-on: ubuntu-latest
+    permissions:
+      contents: write       # edit the release body
+      pull-requests: read   # list the pull requests in the release
+
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Compose and apply the release notes
         env:
@@ -112,20 +232,3 @@ jobs:
           gh release edit "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" \
             --title "${GITHUB_REPOSITORY#*/} ${GITHUB_REF_NAME#v}" \
             --notes-file release-notes.md
-
-  pypi-publish:
-    name: Publish to PyPI
-    needs: build
-    runs-on: ubuntu-latest
-    environment:
-      name: pypi
-      url: https://pypi.org/p/bankstatementparser-loader-bai2
-    steps:
-      - name: Download dist
-        uses: actions/download-artifact@v8
-        with:
-          name: dist
-          path: dist/
-
-      - name: Publish via OIDC trusted publishing
-        uses: pypa/gh-action-pypi-publish@release/v1

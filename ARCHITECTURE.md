@@ -8,7 +8,7 @@ bankstatementparser-loader-bai2 without prior context.
 
 ## The pipeline
 
-```
+```text
 BAI2 payload (str / file)
         |  tokenise into comma-delimited records
         v
@@ -32,10 +32,15 @@ execution.
 
 | Area | Module | Responsibility |
 | :--- | :--- | :--- |
-| **Loader** | `bankstatementparser_loader_bai2/loader.py` | Record tokeniser, field helpers, sign convention, and the public `load_bai2` / `load_bai2_file` / `summarize_bai2` API plus the `Bai2Summary` dataclass |
+| **Loader** | `bankstatementparser_loader_bai2/loader.py` | Record tokeniser, field helpers, sign convention, and the public `load_bai2` / `load_bai2_file` / `summarize_bai2` API plus the `Bai2Summary` dataclass and `Bai2StatementParser` |
+| **Amounts** | `bankstatementparser_loader_bai2/_amounts.py` | `_amount_to_decimal`: validates a `16` amount (optional sign, ASCII digits) and converts minor units to a `Decimal` |
 | **Package entry** | `bankstatementparser_loader_bai2/__init__.py` | Re-exports the public API and defines `__version__` (single source of truth) |
-| **Tests** | `tests/test_loader.py` | 100% line + branch coverage of the loader, including error and edge cases |
-| **Examples** | `examples/` | Two runnable scripts: loading transactions and summarising / loading from disk |
+| **Tests** | `tests/` | 100% line + branch coverage of the loader (`test_loader.py`, `test_amount_validation.py`), golden and real-world fixtures, Hypothesis properties (`test_fuzz.py`), mutation kills, docs and examples accuracy, release notes, and the shared suite conformance gate |
+| **Fuzzing** | `fuzz/fuzz_load_bai2.py`, `fuzz/corpus/` | Atheris target for `load_bai2` and `summarize_bai2`, run by the CI `Fuzz` job |
+| **Benchmarks** | `benches/bench_load_bai2.py` | Load and summary cost as a file grows; `--quick` runs in CI |
+| **Examples** | `examples/` | Three runnable scripts: loading transactions, summarising / loading from disk, and a full tour of the API |
+| **Manual** | `mkdocs.yml`, `docs/` | The MkDocs Material user manual and API reference, deployed to GitHub Pages |
+| **Release helpers** | `scripts/` | `verify_versions.py` (`__version__`, `pyproject.toml` and `CHANGELOG.md` agree), `release_notes.py` (release body), `export_locked_requirements.py` (hashed exports of `poetry.lock`), `check_complexity.py` (complexity baseline), `check_suite_consistency.py` (published suite agrees), `readme-check.sh` (README template) |
 
 ## How a record becomes a transaction
 
@@ -56,14 +61,15 @@ execution.
   interpreted; `49`/`98`/`99` trailers and unknown codes are ignored so
   vendor extensions never abort a parse. The subset and the debit/credit
   sign convention are documented in the module docstring and the README.
-- **Decimal everywhere.** BAI2 minor-unit integer amounts are converted
-  with `Decimal(value) / Decimal(100)`. `float` is never used for money.
+- **Decimal everywhere.** BAI2 minor-unit integer amounts are checked
+  to be an optional sign and ASCII digits, then converted with
+  `Decimal(value) / Decimal(100)`. `float` is never used for money.
 - **No information loss.** The raw BAI2 type code is preserved on every
   `Transaction` in both `category` (`bai2:<code>`) and `reference`, even
   for codes outside the credit/debit ranges.
 - **Postel's law on input.** CRLF, blank lines, an optional trailing
   `/`, and short records are all tolerated; only a missing `01` File
-  Header raises.
+  Header or a malformed `16` amount raises (`ValueError`).
 - **Coverage enforced at 100%** line + branch and docstring.
 
 ## Extension points

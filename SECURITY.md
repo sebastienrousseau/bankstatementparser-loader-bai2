@@ -4,9 +4,10 @@
 
 If you discover a security vulnerability in
 bankstatementparser-loader-bai2, please email
-**security@bankstatementparser.com** instead of using the issue tracker.
+**<security@bankstatementparser.com>** instead of using the issue tracker.
 
 Please include:
+
 1. Description of the vulnerability
 2. Steps to reproduce
 3. Potential impact
@@ -60,6 +61,6 @@ transitive via `bankstatementparser`.
 
 ## Contact
 
-- **Email**: security@bankstatementparser.com
-- **GitHub Advisories**: https://github.com/sebastienrousseau/bankstatementparser-loader-bai2/security/advisories
-- **GitHub Discussions**: https://github.com/sebastienrousseau/bankstatementparser/discussions
+- **Email**: <security@bankstatementparser.com>
+- **GitHub Advisories**: <https://github.com/sebastienrousseau/bankstatementparser-loader-bai2/security/advisories>
+- **GitHub Discussions**: <https://github.com/sebastienrousseau/bankstatementparser/discussions>

@@ -1,4 +1,4 @@
-.PHONY: help install dev test lint format type-check security clean examples doc-coverage mutation complexity check
+.PHONY: help install dev test lint format fuzz docs demo type-check security clean examples doc-coverage mutation complexity check
 
 PYTHON ?= python3
 POETRY ?= poetry
@@ -19,12 +19,17 @@ test: ## Run tests with the 100% line+branch coverage gate
 		--cov-report=term-missing --cov-fail-under=100 -v
 
 lint: ## Run linters (ruff + black check)
-	$(POETRY) run ruff check bankstatementparser_loader_bai2/ tests/
-	$(POETRY) run black --check bankstatementparser_loader_bai2/ tests/
+	$(POETRY) run ruff check bankstatementparser_loader_bai2/ tests/ benches/ fuzz/
+	$(POETRY) run black --check bankstatementparser_loader_bai2/ tests/ benches/ fuzz/
 
 format: ## Auto-format code (ruff fix + black)
-	$(POETRY) run ruff check --fix bankstatementparser_loader_bai2/ tests/
-	$(POETRY) run black bankstatementparser_loader_bai2/ tests/
+	$(POETRY) run ruff check --fix bankstatementparser_loader_bai2/ tests/ benches/ fuzz/
+	$(POETRY) run black bankstatementparser_loader_bai2/ tests/ benches/ fuzz/
+
+fuzz: ## Fuzz the BAI2 loader with Atheris for 60s (Linux x86_64, Python 3.12+)
+	$(POETRY) install --with fuzz
+	mkdir -p .fuzz-corpus
+	$(POETRY) run python fuzz/fuzz_load_bai2.py .fuzz-corpus fuzz/corpus tests/fixtures/real -max_total_time=60
 
 type-check: ## Run mypy type checking
 	$(POETRY) run mypy bankstatementparser_loader_bai2/
@@ -50,6 +55,13 @@ doc-coverage: ## Enforce the 100% docstring coverage gate
 mutation: ## Run mutation testing (mutmut) and print the kill score
 	$(POETRY) run mutmut run
 	$(POETRY) run mutmut results
+
+demo: ## Render the README demo GIF with VHS
+	vhs .github/demo.tape
+
+docs: ## Build the user manual (mkdocs --strict) into site/
+	$(POETRY) install --with docs
+	NO_MKDOCS_2_WARNING=1 $(POETRY) run mkdocs build --strict
 
 # Per-function ceilings (cyclomatic 10, cognitive 15, Halstead 30,
 # 60 lines; 500 lines per file) against scripts/complexity_baseline.json,

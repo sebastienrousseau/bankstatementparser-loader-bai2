@@ -1,6 +1,6 @@
 {
   "bankstatementparser_loader_bai2/loader.py": {
-    "file_lines": 734
+    "file_lines": 718
   },
   "bankstatementparser_loader_bai2/loader.py::load_bai2": {
     "cognitive": 21,

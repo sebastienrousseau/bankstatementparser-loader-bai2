@@ -41,3 +41,13 @@ bankstatementparser_loader_bai2.egg-info/
 mutants/
 .mutmut-cache
 mutants.db
+
+# libFuzzer working corpus and reproducers from fuzz/fuzz_load_bai2.py
+.fuzz-corpus/
+crash-*
+leak-*
+timeout-*
+oom-*
+
+# MkDocs build output
+site/

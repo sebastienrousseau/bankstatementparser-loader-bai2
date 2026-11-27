@@ -5,6 +5,69 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.0.36] - 2026-11-27
+
+### Fixed
+
+- A `16` amount that is not an optional sign and ASCII digits (letters,
+  a decimal point, an exponent, `NaN`, non-ASCII digits) now raises
+  `ValueError` naming the field. Before, letters escaped as
+  `decimal.InvalidOperation`, which callers catching the documented
+  `ValueError` did not expect, `NaN` surfaced as a pydantic error, and
+  `1e5` or `12.50` were loaded as 1000.00 or 0.125. The conversion
+  moves to `bankstatementparser_loader_bai2/_amounts.py`.
+- `make mutation` ran no mutant: the suite's 100% coverage floor
+  applied inside mutmut's trampoline and failed its stats run. The run
+  now passes `--no-cov`, and new tests pin
+  `Bai2StatementParser.get_summary` and the malformed-amount message;
+  `tests/MUTATION.md` records 455 of 481 mutants killed, every survivor
+  a documented equivalent.
+
+### Added
+
+- An Atheris fuzz target, `fuzz/fuzz_load_bai2.py`, for `load_bai2`
+  and `summarize_bai2`, with a seed corpus; it fails on any exception
+  but `ValueError` and on a malformed `Transaction`. CI runs it for
+  120 s on every change; `make fuzz` locally.
+- A MkDocs Material user manual (`mkdocs.yml`, `docs/`) with an
+  mkdocstrings API reference, built with `--strict` on every pull
+  request and deployed to GitHub Pages from `main`
+  (`.github/workflows/docs.yml`, `make docs`). It replaces a Sphinx
+  configuration that nothing built.
+- `docs/POLICIES.md`, `docs/BENCHMARKS.md` (a run of
+  `benches/bench_load_bai2.py` with its environment),
+  `docs/COMPARISON.md`, `docs/format.md` and `docs/suite.md`.
+- Signed releases: keyless cosign `.sig` and `.pem` per distribution,
+  SLSA provenance
+  (`bankstatementparser-loader-bai2-vX.Y.Z.intoto.jsonl`,
+  slsa-github-generator 2.1.0), CycloneDX and SPDX SBOMs and a licence
+  manifest on every GitHub release, and PEP 740 attestations on PyPI.
+- The OpenSSF Scorecard workflow, the suite's Docs Lint workflow
+  (`scripts/readme-check.sh` and markdownlint), a Security workflow
+  (Bandit and `pip-audit` on the locked sets), the portfolio pull
+  request template, and `.github/demo.gif` rendered by `make demo` from
+  `.github/demo.tape`.
+- Hash-pinned requirement sets exported from the lock
+  (`requirements/{runtime,ci,fuzz,docs}.txt`, by the suite's
+  `scripts/export_locked_requirements.py`) and compiled release tooling
+  (`requirements/{build,sbom}.txt`).
+
+### Changed
+
+- Require `bankstatementparser >= 0.0.35`, the newest core release, and
+  align the version with the suite's 0.0.36 release; `poetry.lock`
+  moves core to 0.0.35.
+- CI pins every action by commit SHA, installs only the hashed lock
+  exports, and tests CPython 3.10 to 3.14 on Ubuntu, macOS and Windows.
+  Write permissions sit on the jobs that need them.
+- `README.md` follows the portfolio template and states the
+  Apache-2.0 OR MIT licence; it no longer claims the core cannot parse
+  BAI2 (it has shipped a `Bai2Parser` since 0.0.26). The suite table
+  moves to `docs/suite.md`. `CODE-OF-CONDUCT.md` is now
+  `CODE_OF_CONDUCT.md`, and the issue templates follow the suite kit.
+- `ROADMAP.md` no longer calls v0.0.10 current; `ARCHITECTURE.md`
+  lists every module and tool.
+
 ## [0.0.35] - 2026-11-26
 
 ### Added
@@ -337,6 +400,7 @@ the run, locally as well as in CI.
 - interrogate: 100% docstring coverage.
 - ruff + black + mypy (`--strict`) all clean.
 
+[0.0.36]: https://github.com/sebastienrousseau/bankstatementparser-loader-bai2/releases/tag/v0.0.36
 [0.0.35]: https://github.com/sebastienrousseau/bankstatementparser-loader-bai2/releases/tag/v0.0.35
 [0.0.34]: https://github.com/sebastienrousseau/bankstatementparser-loader-bai2/releases/tag/v0.0.34
 [0.0.33]: https://github.com/sebastienrousseau/bankstatementparser-loader-bai2/releases/tag/v0.0.33
