@@ -1,4 +1,4 @@
-.PHONY: help install dev test lint format type-check security clean examples doc-coverage mutation complexity check
+.PHONY: help install dev test lint format fuzz docs demo type-check security clean examples doc-coverage mutation complexity check
 
 PYTHON ?= python3
 POETRY ?= poetry
@@ -19,12 +19,17 @@ test: ## Run tests with the 100% line+branch coverage gate
 		--cov-report=term-missing --cov-fail-under=100 -v
 
 lint: ## Run linters (ruff + black check)
-	$(POETRY) run ruff check bankstatementparser_loader_bai2/ tests/
-	$(POETRY) run black --check bankstatementparser_loader_bai2/ tests/
+	$(POETRY) run ruff check bankstatementparser_loader_bai2/ tests/ benches/ fuzz/
+	$(POETRY) run black --check bankstatementparser_loader_bai2/ tests/ benches/ fuzz/
 
 format: ## Auto-format code (ruff fix + black)
-	$(POETRY) run ruff check --fix bankstatementparser_loader_bai2/ tests/
-	$(POETRY) run black bankstatementparser_loader_bai2/ tests/
+	$(POETRY) run ruff check --fix bankstatementparser_loader_bai2/ tests/ benches/ fuzz/
+	$(POETRY) run black bankstatementparser_loader_bai2/ tests/ benches/ fuzz/
+
+fuzz: ## Fuzz the BAI2 loader with Atheris for 60s (Linux x86_64, Python 3.12+)
+	$(POETRY) install --with fuzz
+	mkdir -p .fuzz-corpus
+	$(POETRY) run python fuzz/fuzz_load_bai2.py .fuzz-corpus fuzz/corpus tests/fixtures/real -max_total_time=60
 
 type-check: ## Run mypy type checking
 	$(POETRY) run mypy bankstatementparser_loader_bai2/
