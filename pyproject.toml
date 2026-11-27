@@ -34,6 +34,34 @@ mutmut = "^3.6.0"
 tomli = { version = ">=2", python = "<3.11" }
 packaging = ">=23"
 hypothesis = ">=6.82,<7"
+build = "^1.6.1"
+# pip-audit pulls filelock (via cachecontrol[filecache]). Every filelock
+# up to 4.2.0 carries advisories and 4.2.1 needs Python 3.11, so pip-audit
+# is installed on 3.11+ only (its CI job runs on 3.12) and the floor keeps
+# any affected filelock from resolving.
+pip-audit = { version = "^2.10.1", python = ">=3.11" }
+filelock = { version = ">=4.2.1", python = ">=3.11" }
+
+# The user manual (mkdocs.yml, deployed to GitHub Pages by
+# .github/workflows/docs.yml). CI installs requirements/docs.txt, the
+# hashed export of this group. mkdocs-material 9.8 needs Python 3.11, and
+# the manual is built on 3.12 only, so the group is marked to match.
+[tool.poetry.group.docs]
+optional = true
+
+[tool.poetry.group.docs.dependencies]
+mkdocs-material = { version = "^9.8", python = ">=3.11" }
+mkdocstrings = { version = ">=1.0", python = ">=3.11", extras = ["python"] }
+
+# Coverage-guided fuzzing of the BAI2 loader (fuzz/fuzz_load_bai2.py, run
+# by the CI "Fuzz" job). Atheris ships wheels for Linux x86_64 on CPython
+# 3.12+ only and no sdist, so the group is optional and marked to match.
+[tool.poetry.group.fuzz]
+optional = true
+
+[tool.poetry.group.fuzz.dependencies]
+atheris = { version = "^3.1.0", python = ">=3.12", markers = "sys_platform == 'linux' and platform_machine == 'x86_64'" }
+
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
