@@ -132,6 +132,8 @@ from bankstatementparser.base_parser import BankStatementParser
 from bankstatementparser.record_types import SummaryRecord
 from bankstatementparser.transaction_models import Transaction
 
+from bankstatementparser_loader_bai2._amounts import _amount_to_decimal
+
 __all__ = [
     "Bai2StatementParser",
     "load_bai2",
@@ -364,24 +366,6 @@ def _field(fields: list[str], index: int) -> str:
     if 0 <= index < len(fields):
         return fields[index]
     return ""
-
-
-def _amount_to_decimal(raw: str) -> Decimal:
-    """Convert a BAI2 minor-unit integer amount to a major-unit Decimal.
-
-    BAI2 amounts are unsigned integers in the currency's minor units
-    (cents) with no decimal point. An empty field is treated as ``0``.
-
-    Args:
-        raw: The raw amount field (e.g. ``"150000"`` for 1500.00).
-
-    Returns:
-        The amount as a :class:`decimal.Decimal` in major units.
-    """
-    text = raw.strip()
-    if not text:
-        return Decimal("0")
-    return Decimal(text) / Decimal(100)
 
 
 def _signed_amount(type_code: str, magnitude: Decimal) -> Decimal:
