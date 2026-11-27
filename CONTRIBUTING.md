@@ -59,24 +59,32 @@ pip install poetry
 
 1. **Fork** the repository
 2. **Create a branch** from `main`:
+
    ```bash
    git checkout -b feat/my-feature
    ```
+
 3. **Make changes** - follow the coding standards below
 4. **Run tests**:
+
    ```bash
    poetry run pytest tests/ -v
    ```
+
 5. **Run linters**:
+
    ```bash
    poetry run ruff check bankstatementparser_loader_bai2/
    poetry run mypy --strict bankstatementparser_loader_bai2/
    poetry run black --check bankstatementparser_loader_bai2/ tests/
    ```
+
 6. **Sign and commit**:
+
    ```bash
    git commit -S -m "feat: add my feature"
    ```
+
 7. **Push** and open a pull request
 
 ## Commit Signing (Required)
@@ -95,7 +103,7 @@ git config --global commit.gpgsign true
 
 Use [Conventional Commits](https://www.conventionalcommits.org/):
 
-```
+```text
 feat: handle 88 continuation on account records
 fix: correct the credit/debit sign on type-16 detail records
 docs: clarify the sign convention

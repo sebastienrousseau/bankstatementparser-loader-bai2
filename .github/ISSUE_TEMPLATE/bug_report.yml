@@ -14,7 +14,7 @@ body:
     id: bankstatementparser_version
     attributes:
       label: bankstatementparser Version
-      placeholder: "0.0.9"
+      placeholder: "0.0.10"
     validations:
       required: true
   - type: dropdown
@@ -26,6 +26,7 @@ body:
         - "3.11"
         - "3.12"
         - "3.13"
+        - "3.14"
     validations:
       required: true
   - type: dropdown
@@ -46,23 +47,24 @@ body:
     validations:
       required: true
   - type: textarea
-    id: sample
+    id: document
     attributes:
-      label: BAI2 Sample
+      label: BAI2 Input
       description: |
-        A minimal BAI2 payload that reproduces the problem (redact any
-        real account numbers - placeholder data is fine).
+        The smallest BAI2 text that shows the problem (redact any
+        sensitive account numbers or balances - placeholder data is fine).
+      render: text
     validations:
       required: true
   - type: textarea
     id: error_output
     attributes:
-      label: Error Output
-      description: The exception message or full traceback returned.
+      label: Output Or Error
+      description: The transactions you got (or expected), or the stack trace.
     validations:
       required: true
   - type: textarea
     id: extra
     attributes:
       label: Anything Else
-      description: Logs, environment details, etc.
+      description: Logs, how the file was produced (bank, system), etc.

@@ -8,7 +8,7 @@ bankstatementparser-loader-bai2 without prior context.
 
 ## The pipeline
 
-```
+```text
 BAI2 payload (str / file)
         |  tokenise into comma-delimited records
         v

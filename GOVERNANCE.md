@@ -77,6 +77,6 @@ library used to read financial statements. The mitigations in place:
 ## Code of conduct & security
 
 Participation is governed by
-[`CODE-OF-CONDUCT.md`](CODE-OF-CONDUCT.md). Security issues follow the
+[`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md). Security issues follow the
 private disclosure process in [`SECURITY.md`](SECURITY.md) - please do
 not open public issues for vulnerabilities.
