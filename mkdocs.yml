@@ -1,0 +1,61 @@
+site_name: bankstatementparser-loader-bai2
+site_description: >-
+  BAI2 (Bank Administration Institute, version 2) cash-management loader
+  that parses BAI2 files into bankstatementparser Transaction objects.
+site_url: https://sebastienrousseau.com/bankstatementparser-loader-bai2/
+repo_url: https://github.com/sebastienrousseau/bankstatementparser-loader-bai2
+repo_name: sebastienrousseau/bankstatementparser-loader-bai2
+copyright: >-
+  &copy; 2026 <a href="https://sebastienrousseau.com/" rel="author">Sebastien Rousseau</a>
+
+theme:
+  name: material
+  features:
+    - content.code.copy
+    - navigation.sections
+    - navigation.top
+    - search.suggest
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+
+plugins:
+  - search
+  - mkdocstrings:
+      handlers:
+        python:
+          options:
+            docstring_style: google
+            show_source: true
+            show_root_heading: true
+            members_order: source
+
+markdown_extensions:
+  - admonition
+  - pymdownx.highlight
+  - pymdownx.superfences
+  - pymdownx.snippets:
+      check_paths: true
+  - tables
+  - toc:
+      permalink: true
+
+nav:
+  - Home: index.md
+  - BAI2 support: format.md
+  - The suite: suite.md
+  - Comparison: COMPARISON.md
+  - Benchmarks: BENCHMARKS.md
+  - Supported Python: POLICIES.md
+  - API reference: api.md
+  - Roadmap: roadmap.md
+  - Changelog: changelog.md
+  - Security: security.md

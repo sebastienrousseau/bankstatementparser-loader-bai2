@@ -56,6 +56,13 @@ mutation: ## Run mutation testing (mutmut) and print the kill score
 	$(POETRY) run mutmut run
 	$(POETRY) run mutmut results
 
+demo: ## Render the README demo GIF with VHS
+	vhs .github/demo.tape
+
+docs: ## Build the user manual (mkdocs --strict) into site/
+	$(POETRY) install --with docs
+	NO_MKDOCS_2_WARNING=1 $(POETRY) run mkdocs build --strict
+
 # Per-function ceilings (cyclomatic 10, cognitive 15, Halstead 30,
 # 60 lines; 500 lines per file) against scripts/complexity_baseline.json,
 # which may only shrink. Record an improvement with
