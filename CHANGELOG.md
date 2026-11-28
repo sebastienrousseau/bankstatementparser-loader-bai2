@@ -15,6 +15,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - CI: four pinned actions move to their latest releases:
   codeql-action 4.39.5, markdownlint-cli2-action 25.1.0,
   cosign-installer 4.1.4 and sbom-action 0.24.4.
+- CI: `make security` and the Security workflow run bandit's full
+  scan with `pyproject.toml`'s config; `make security` no longer falls
+  back to a medium-severity-only run when the full scan fails.
 
 ### Fixed
 
