@@ -29,7 +29,7 @@ jobs:
         run: pip install --require-hashes -r requirements/ci.txt
 
       - name: Run bandit
-        run: bandit -r bankstatementparser_loader_bai2/ -ll
+        run: bandit -r bankstatementparser_loader_bai2/ -c pyproject.toml
 
   pip-audit:
     name: pip-audit (vulnerable dependencies)

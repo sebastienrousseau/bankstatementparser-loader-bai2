@@ -20,7 +20,7 @@
 </p>
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/sebastienrousseau/bankstatementparser-loader-bai2/main/.github/demo.gif" alt="A terminal printing bankstatementparser-loader-bai2 0.0.36, the repository's multi-group BAI2 fixture, then the 01_load_transactions.py and 02_summarize_file.py examples loading signed transactions and a file summary" width="100%" />
+  <img src="https://raw.githubusercontent.com/sebastienrousseau/bankstatementparser-loader-bai2/main/.github/demo.gif" alt="A terminal printing bankstatementparser-loader-bai2 0.0.37, the repository's multi-group BAI2 fixture, then the 01_load_transactions.py and 02_summarize_file.py examples loading signed transactions and a file summary" width="100%" />
 </p>
 
 ---
@@ -65,18 +65,18 @@
 pip install bankstatementparser-loader-bai2
 ```
 
-That installs the loader and `bankstatementparser >= 0.0.35`, which brings `pandas` and `pydantic`.
+That installs the loader and `bankstatementparser >= 0.0.36`, which brings `pandas` and `pydantic`.
 
 | Channel | Command | Notes |
 | :--- | :--- | :--- |
-| PyPI | `pip install bankstatementparser-loader-bai2` | Pulls in `bankstatementparser >= 0.0.35` |
+| PyPI | `pip install bankstatementparser-loader-bai2` | Pulls in `bankstatementparser >= 0.0.36` |
 | Source | `git clone https://github.com/sebastienrousseau/bankstatementparser-loader-bai2 && cd bankstatementparser-loader-bai2 && poetry install` | For development |
 
 Verify the installation:
 
 ```sh
 python -c "import bankstatementparser_loader_bai2 as b; print(b.__version__)"
-# -> 0.0.36
+# -> 0.0.37
 ```
 
 An isolated virtual environment keeps the loader's dependencies apart:
@@ -93,7 +93,7 @@ python -m pip install -U bankstatementparser-loader-bai2
 ## Requirements
 
 - **Python 3.10 or later.** CI tests CPython 3.10, 3.11, 3.12, 3.13 and 3.14 on Linux, macOS and Windows; [`docs/POLICIES.md`](docs/POLICIES.md) says when the floor moves.
-- **[`bankstatementparser`](https://pypi.org/project/bankstatementparser/) 0.0.35 or later**, whose `Transaction` model and `BankStatementParser` base class the loader produces and extends.
+- **[`bankstatementparser`](https://pypi.org/project/bankstatementparser/) 0.0.36 or later**, whose `Transaction` model and `BankStatementParser` base class the loader produces and extends.
 - No network access, native extensions or system packages of its own.
 
 ---
@@ -340,7 +340,7 @@ make check
 
 `make check` runs the local gates: `ruff` and `black`, `mypy --strict`, the complexity baseline (`scripts/check_complexity.py`), `pytest` with a 100% line + branch coverage floor, `interrogate` at 100% docstring coverage, and the examples. Other targets: `make fuzz` (Atheris, 60 s, Linux x86_64 with Python 3.12+), `make docs` (the MkDocs manual, `--strict`), `make mutation` (mutmut) and `make demo` (re-renders the GIF above with VHS from `.github/demo.tape`). CI adds the OS by Python matrix, the fuzz run, CodeQL, `pip-audit` on the locked requirements and the Docs Lint gates. Documentation and example regression tests ([`tests/test_docs_accuracy.py`](tests/test_docs_accuracy.py), [`tests/test_regression_docs.py`](tests/test_regression_docs.py), [`tests/test_regression_examples.py`](tests/test_regression_examples.py)) execute every documented snippet and every `examples/*.py` script.
 
-Current state (v0.0.36): 100% line + branch coverage against a 100% enforced floor, `mypy --strict` clean, interrogate 100%, and a mutation-tested loader (455/481 mutants killed; the 26 survivors are documented equivalent mutants, see [`tests/MUTATION.md`](tests/MUTATION.md)). [`CONTRIBUTING.md`](CONTRIBUTING.md) covers branches and commit signing.
+Current state (v0.0.37): 100% line + branch coverage against a 100% enforced floor, `mypy --strict` clean, interrogate 100%, and a mutation-tested loader (455/481 mutants killed; the 26 survivors are documented equivalent mutants, see [`tests/MUTATION.md`](tests/MUTATION.md)). [`CONTRIBUTING.md`](CONTRIBUTING.md) covers branches and commit signing.
 
 ---
 
