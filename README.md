@@ -20,7 +20,7 @@
 </p>
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/sebastienrousseau/bankstatementparser-loader-bai2/main/.github/demo.gif" alt="A terminal printing bankstatementparser-loader-bai2 0.0.36, the repository's multi-group BAI2 fixture, then the 01_load_transactions.py and 02_summarize_file.py examples loading signed transactions and a file summary" width="100%" />
+  <img src="https://raw.githubusercontent.com/sebastienrousseau/bankstatementparser-loader-bai2/main/.github/demo.gif" alt="A terminal printing bankstatementparser-loader-bai2 0.0.37, the repository's multi-group BAI2 fixture, then the 01_load_transactions.py and 02_summarize_file.py examples loading signed transactions and a file summary" width="100%" />
 </p>
 
 ---
