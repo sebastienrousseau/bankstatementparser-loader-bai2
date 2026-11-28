@@ -13,6 +13,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   codeql-action 4.39.5, markdownlint-cli2-action 25.1.0,
   cosign-installer 4.1.4 and sbom-action 0.24.4.
 
+### Fixed
+
+- The suite consistency check authenticates its GitHub API request
+  with the workflow token, so the shared anonymous rate limit no
+  longer fails it.
+
 ## [0.0.36] - 2026-11-27
 
 ### Fixed
