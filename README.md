@@ -76,7 +76,7 @@ Verify the installation:
 
 ```sh
 python -c "import bankstatementparser_loader_bai2 as b; print(b.__version__)"
-# -> 0.0.36
+# -> 0.0.37
 ```
 
 An isolated virtual environment keeps the loader's dependencies apart:
@@ -340,7 +340,7 @@ make check
 
 `make check` runs the local gates: `ruff` and `black`, `mypy --strict`, the complexity baseline (`scripts/check_complexity.py`), `pytest` with a 100% line + branch coverage floor, `interrogate` at 100% docstring coverage, and the examples. Other targets: `make fuzz` (Atheris, 60 s, Linux x86_64 with Python 3.12+), `make docs` (the MkDocs manual, `--strict`), `make mutation` (mutmut) and `make demo` (re-renders the GIF above with VHS from `.github/demo.tape`). CI adds the OS by Python matrix, the fuzz run, CodeQL, `pip-audit` on the locked requirements and the Docs Lint gates. Documentation and example regression tests ([`tests/test_docs_accuracy.py`](tests/test_docs_accuracy.py), [`tests/test_regression_docs.py`](tests/test_regression_docs.py), [`tests/test_regression_examples.py`](tests/test_regression_examples.py)) execute every documented snippet and every `examples/*.py` script.
 
-Current state (v0.0.36): 100% line + branch coverage against a 100% enforced floor, `mypy --strict` clean, interrogate 100%, and a mutation-tested loader (455/481 mutants killed; the 26 survivors are documented equivalent mutants, see [`tests/MUTATION.md`](tests/MUTATION.md)). [`CONTRIBUTING.md`](CONTRIBUTING.md) covers branches and commit signing.
+Current state (v0.0.37): 100% line + branch coverage against a 100% enforced floor, `mypy --strict` clean, interrogate 100%, and a mutation-tested loader (455/481 mutants killed; the 26 survivors are documented equivalent mutants, see [`tests/MUTATION.md`](tests/MUTATION.md)). [`CONTRIBUTING.md`](CONTRIBUTING.md) covers branches and commit signing.
 
 ---
 

@@ -7,7 +7,12 @@ library. Releases stay on the `0.0.x` line, one `0.0.1` step at a time
 with the rest of the suite, so the sections below are ordered, not
 versioned; releases ship when the gates pass, not on a calendar.
 
-## Shipped (0.0.36, current)
+## Shipped (0.0.37, current)
+
+- Built against core 0.0.36; the suite consistency check authenticates
+  its GitHub API request.
+
+## Shipped (0.0.36)
 
 - `load_bai2`, `load_bai2_file`, and `summarize_bai2` over a documented,
   pragmatic BAI2 subset (`01`/`02`/`03`/`16`/`88`, with `49`/`98`/`99`

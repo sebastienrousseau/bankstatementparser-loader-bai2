@@ -7,14 +7,14 @@ body:
     id: version
     attributes:
       label: bankstatementparser-loader-bai2 Version
-      placeholder: "0.0.10"
+      placeholder: "0.0.37"
     validations:
       required: true
   - type: input
     id: bankstatementparser_version
     attributes:
       label: bankstatementparser Version
-      placeholder: "0.0.10"
+      placeholder: "0.0.37"
     validations:
       required: true
   - type: dropdown
