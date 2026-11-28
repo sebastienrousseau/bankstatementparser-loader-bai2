@@ -6,9 +6,9 @@ atheris==3.1.0 ; (python_full_version < "4.0" and python_full_version >= "3.10")
     --hash=sha256:315a0b5c819852b1ffe1ca72efc389c7724881f2c33e4aacb8c6bcec49bd5011 \
     --hash=sha256:ec5e11f21a4c197fe91f7aea2b2de88e623c73a21fc07b105ac6329a1588457b \
     --hash=sha256:f8a9f51ce8369026e8eb7b7174835e8c4c85a1a6db5d9add36c15100779d2a39
-bankstatementparser==0.0.35 ; (python_full_version < "4.0" and python_full_version >= "3.10") and (python_full_version < "4.0" and python_full_version >= "3.10") \
-    --hash=sha256:00ec6ae69dcb6c0955e96a2f66f473cf0f26dfc7c626854af94e39e70edf0a11 \
-    --hash=sha256:c30d8ab535e88dd37872a7461b71eb2e6b4b90a1ca56e306cf5601095a076277
+bankstatementparser==0.0.36 ; (python_full_version < "4.0" and python_full_version >= "3.10") and (python_full_version < "4.0" and python_full_version >= "3.10") \
+    --hash=sha256:bdeb4ae68283f1c595fe7b0a1d06b8c9961a66dce1cd7b9866ce38bda98066f5 \
+    --hash=sha256:c4083637a6ee11b3e90b17fadd4bd3b8f260a6e149d17ff5b3bef48902acf784
 defusedxml==0.7.1 ; (python_full_version < "4.0" and python_full_version >= "3.10") and (python_full_version != "3.0.*" and python_full_version != "3.1.*" and python_full_version != "3.2.*" and python_full_version != "3.3.*" and python_full_version != "3.4.*" and python_full_version >= "2.7") \
     --hash=sha256:1bb3032db185915b62d7c6209c5a8792be6a32ab2fedacc84e01b52c51aa3e69 \
     --hash=sha256:a352e7e428770286cc899e2542b6cdaedb2b4953ff269a210103ec58f6198a61
